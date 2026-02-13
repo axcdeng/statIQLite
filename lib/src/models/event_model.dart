@@ -1,0 +1,70 @@
+import 'package:hive/hive.dart';
+import 'package:json_annotation/json_annotation.dart';
+
+part 'event_model.g.dart';
+
+@HiveType(typeId: 0, adapterName: 'EventAdapter')
+@JsonSerializable()
+class Event {
+  @HiveField(0)
+  final int id;
+  @HiveField(1)
+  final String name;
+  @HiveField(2)
+  final String? venue;
+  @HiveField(3)
+  final DateTime startDate;
+  @HiveField(4)
+  final DateTime endDate;
+  @HiveField(5)
+  @JsonKey(defaultValue: 'VIQC')
+  final String programCode;
+  @HiveField(6)
+  final DateTime? lastUpdated;
+  @HiveField(7)
+  final String? location;
+  @HiveField(8)
+  final String? sku;
+
+  Event({
+    required this.id,
+    required this.name,
+    this.venue,
+    required this.startDate,
+    required this.endDate,
+    this.programCode = 'VIQC',
+    this.lastUpdated,
+    this.location,
+    this.sku,
+  });
+
+  factory Event.fromJson(Map<String, dynamic> json) {
+    // Handle nested objects from RoboStem
+    final locationObj = json['location'] as Map<String, dynamic>?;
+    final venue = locationObj?['venue'] as String?;
+    final city = locationObj?['city'] as String?;
+    final region = locationObj?['region'] as String?;
+    final country = locationObj?['country'] as String?;
+    final location = [city, region, country]
+        .where((e) => e != null && e.isNotEmpty)
+        .join(', ');
+
+    return Event(
+      id: int.parse(json['id'].toString()),
+      name: json['name'] as String,
+      venue: venue,
+      startDate: DateTime.parse(json['start'] as String),
+      endDate: DateTime.parse(json['end'] as String),
+      programCode:
+          (json['program'] as Map<String, dynamic>?)?['code'] as String? ??
+              'VIQC',
+      lastUpdated: json['lastUpdated'] != null
+          ? DateTime.parse(json['lastUpdated'] as String)
+          : null,
+      location: location,
+      sku: json['sku'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => _$EventToJson(this);
+}

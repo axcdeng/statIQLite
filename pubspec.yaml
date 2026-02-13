@@ -1,0 +1,45 @@
+name: roboscout_iq
+description: An offline-first VEX IQ scouting app.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.4
+  dio: ^5.0.0
+  flutter_riverpod: ^2.0.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  json_annotation: ^4.8.0
+  flutter_secure_storage: ^8.0.0
+  csv: ^5.0.0
+  excel: ^2.0.0
+  share_plus: ^6.0.0
+  path_provider: ^2.0.0
+  intl: ^0.18.0
+  workmanager: ^0.5.0
+  uuid: ^3.0.6
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.0
+  freezed: ^2.2.0
+  freezed_annotation: ^2.2.0
+  json_serializable: ^6.5.0
+  hive_generator: ^2.0.0
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/images/
+
+dependency_overrides:
+  win32: ^5.0.0
