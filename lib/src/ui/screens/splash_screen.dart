@@ -44,18 +44,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              Theme.of(context).brightness == Brightness.dark
-                  ? 'assets/images/light.png'
-                  : 'assets/images/dark.png',
-              height: 100,
-              errorBuilder: (context, error, stackTrace) {
-                return Text(
-                  'Error: $error',
-                  style: const TextStyle(color: Colors.red),
-                );
-              },
-            ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

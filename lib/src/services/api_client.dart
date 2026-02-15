@@ -19,23 +19,17 @@ class ApiClient {
         )) {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
-        print('--- REQUEST ---');
-        print('Path: ${options.path}');
-        print('Headers: ${options.headers}');
-        print('Query Params: ${options.queryParameters}');
+        print('REQ: ${options.method} ${options.path}');
         return handler.next(options);
       },
       onResponse: (response, handler) {
-        print('--- RESPONSE ---');
-        print('Status: ${response.statusCode}');
-        print('Data: ${response.data}');
+        print(
+            'RES: ${response.statusCode} ${response.requestOptions.path} (${response.data.toString().length} bytes)');
         return handler.next(response);
       },
       onError: (DioException e, handler) {
-        print('--- ERROR ---');
-        print('Status: ${e.response?.statusCode}');
-        print('Message: ${e.message}');
-        print('Response Data: ${e.response?.data}');
+        print(
+            'ERR: ${e.response?.statusCode} ${e.requestOptions.path} - ${e.message}');
         return handler.next(e);
       },
     ));
