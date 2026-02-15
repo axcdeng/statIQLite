@@ -61,7 +61,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _buildSectionHeader('General'),
             Container(
               decoration: BoxDecoration(
-                color: CupertinoColors.secondarySystemGroupedBackground,
+                color: CupertinoColors.secondarySystemGroupedBackground
+                    .resolveFrom(context),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -80,23 +81,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: CupertinoSlidingSegmentedControl<ThemeMode>(
+                      thumbColor: primaryColor,
                       groupValue: settings.themeMode,
                       children: {
                         ThemeMode.light: Text('Light',
                             style: TextStyle(
                                 color: settings.themeMode == ThemeMode.light
                                     ? Theme.of(context).colorScheme.onPrimary
-                                    : null)),
+                                    : CupertinoColors.secondaryLabel
+                                        .resolveFrom(context))),
                         ThemeMode.dark: Text('Dark',
                             style: TextStyle(
                                 color: settings.themeMode == ThemeMode.dark
                                     ? Theme.of(context).colorScheme.onPrimary
-                                    : null)),
+                                    : CupertinoColors.secondaryLabel
+                                        .resolveFrom(context))),
                         ThemeMode.system: Text('System',
                             style: TextStyle(
                                 color: settings.themeMode == ThemeMode.system
                                     ? Theme.of(context).colorScheme.onPrimary
-                                    : null)),
+                                    : CupertinoColors.secondaryLabel
+                                        .resolveFrom(context))),
                       },
                       onValueChanged: (mode) {
                         if (mode != null) {
@@ -115,7 +120,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _buildSectionHeader('API Configuration'),
             Container(
               decoration: BoxDecoration(
-                color: CupertinoColors.secondarySystemGroupedBackground,
+                color: CupertinoColors.secondarySystemGroupedBackground
+                    .resolveFrom(context),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -154,7 +160,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _buildSectionHeader('Data Management'),
             Container(
               decoration: BoxDecoration(
-                color: CupertinoColors.secondarySystemGroupedBackground,
+                color: CupertinoColors.secondarySystemGroupedBackground
+                    .resolveFrom(context),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(

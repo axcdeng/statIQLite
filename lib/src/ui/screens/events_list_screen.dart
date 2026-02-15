@@ -217,7 +217,8 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
           child: Icon(CupertinoIcons.refresh, color: primaryColor),
           onPressed: () => eventsRepo.basicSync(),
         ),
-        backgroundColor: CupertinoColors.systemGroupedBackground,
+        backgroundColor:
+            CupertinoColors.systemGroupedBackground.resolveFrom(context),
       ),
       child: content,
     );
@@ -254,7 +255,8 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    color: CupertinoColors.secondarySystemGroupedBackground,
+                    color: CupertinoColors.secondarySystemGroupedBackground
+                        .resolveFrom(context),
                     borderRadius: isExpanded
                         ? const BorderRadius.vertical(top: Radius.circular(12))
                         : BorderRadius.circular(12),
@@ -315,8 +317,10 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                                               fontSize: 16,
                                               color: isCurrentWeek
                                                   ? CupertinoColors.label
+                                                      .resolveFrom(context)
                                                   : CupertinoColors
-                                                      .secondaryLabel,
+                                                      .secondaryLabel
+                                                      .resolveFrom(context),
                                               letterSpacing: -0.3,
                                             ),
                                           ),
@@ -365,7 +369,8 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                                       fontSize: 14,
                                       color: isCurrentWeek
                                           ? primaryColor
-                                          : CupertinoColors.secondaryLabel,
+                                          : CupertinoColors.secondaryLabel
+                                              .resolveFrom(context),
                                     ),
                                   ),
                                 ),
@@ -375,7 +380,8 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                                       ? CupertinoIcons.chevron_down
                                       : CupertinoIcons.chevron_right,
                                   size: 13,
-                                  color: CupertinoColors.systemGrey,
+                                  color: CupertinoColors.systemGrey
+                                      .resolveFrom(context),
                                 ),
                               ],
                             ),
@@ -389,10 +395,11 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
               // Expanded Events
               if (isExpanded)
                 Container(
-                  decoration: const BoxDecoration(
-                    color: CupertinoColors.secondarySystemGroupedBackground,
-                    borderRadius:
-                        BorderRadius.vertical(bottom: Radius.circular(12)),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.secondarySystemGroupedBackground
+                        .resolveFrom(context),
+                    borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(12)),
                   ),
                   child: Column(
                     children: [
@@ -439,17 +446,19 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(event.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
-                          color: CupertinoColors.label),
+                          color: CupertinoColors.label.resolveFrom(context)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 3),
                   Text(
                     '${event.location ?? 'Unknown'}  •  $dateStr',
-                    style: const TextStyle(
-                        fontSize: 11, color: CupertinoColors.secondaryLabel),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: CupertinoColors.secondaryLabel
+                            .resolveFrom(context)),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

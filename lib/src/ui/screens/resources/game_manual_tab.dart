@@ -707,7 +707,7 @@ class _GameManualTabState extends State<GameManualTab> {
             controller: _searchController,
             placeholder: 'Search rules, tags, or rule numbers...',
             onChanged: (val) => setState(() => _searchQuery = val),
-            style: const TextStyle(color: CupertinoColors.label),
+            style: TextStyle(color: CupertinoColors.label.resolveFrom(context)),
           ),
         ),
 
@@ -734,7 +734,8 @@ class _GameManualTabState extends State<GameManualTab> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                     decoration: BoxDecoration(
-                      color: CupertinoColors.tertiarySystemFill,
+                      color: CupertinoColors.tertiarySystemFill
+                          .resolveFrom(context),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
                           color: primaryColor.withValues(alpha: 0.4), width: 1),
@@ -767,11 +768,11 @@ class _GameManualTabState extends State<GameManualTab> {
         // Rules list
         Expanded(
           child: filtered.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     'No rules found.',
                     style: TextStyle(
-                      color: CupertinoColors.inactiveGray,
+                      color: CupertinoColors.inactiveGray.resolveFrom(context),
                       fontSize: 15,
                     ),
                   ),
@@ -879,7 +880,9 @@ class _GameManualTabState extends State<GameManualTab> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: isActive ? primaryColor : CupertinoColors.tertiarySystemFill,
+            color: isActive
+                ? primaryColor
+                : CupertinoColors.tertiarySystemFill.resolveFrom(context),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Text(
@@ -887,7 +890,7 @@ class _GameManualTabState extends State<GameManualTab> {
             style: TextStyle(
               color: isActive
                   ? Theme.of(context).colorScheme.onPrimary
-                  : CupertinoColors.label,
+                  : CupertinoColors.label.resolveFrom(context),
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -901,9 +904,11 @@ class _GameManualTabState extends State<GameManualTab> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: CupertinoColors.secondarySystemGroupedBackground,
+        color: CupertinoColors.secondarySystemGroupedBackground
+            .resolveFrom(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CupertinoColors.separator, width: 0.5),
+        border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context), width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -931,10 +936,10 @@ class _GameManualTabState extends State<GameManualTab> {
               Expanded(
                 child: Text(
                   rule.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
-                    color: CupertinoColors.label,
+                    color: CupertinoColors.label.resolveFrom(context),
                   ),
                 ),
               ),
@@ -944,9 +949,9 @@ class _GameManualTabState extends State<GameManualTab> {
           // Body
           Text(
             rule.body,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: CupertinoColors.secondaryLabel,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
               height: 1.5,
             ),
           ),
@@ -965,14 +970,16 @@ class _GameManualTabState extends State<GameManualTab> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: CupertinoColors.tertiarySystemFill,
+                    color:
+                        CupertinoColors.tertiarySystemFill.resolveFrom(context),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '#$tag',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: CupertinoColors.secondaryLabel,
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
                 ),

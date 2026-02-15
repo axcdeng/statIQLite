@@ -210,9 +210,11 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
 
     return Container(
       decoration: BoxDecoration(
-        color: CupertinoColors.secondarySystemGroupedBackground,
+        color: CupertinoColors.secondarySystemGroupedBackground
+            .resolveFrom(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: CupertinoColors.separator, width: 1),
+        border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context), width: 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -221,8 +223,8 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
           // Title
           Text(
             item.label,
-            style: const TextStyle(
-              color: CupertinoColors.label,
+            style: TextStyle(
+              color: CupertinoColors.label.resolveFrom(context),
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),
@@ -231,8 +233,8 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
           const SizedBox(height: 2),
           Text(
             item.pointsLabel,
-            style: const TextStyle(
-              color: CupertinoColors.secondaryLabel,
+            style: TextStyle(
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
               fontSize: 11,
             ),
           ),
@@ -261,8 +263,8 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
                     CupertinoIcons.minus,
                     size: 18,
                     color: isMin
-                        ? CupertinoColors.quaternaryLabel
-                        : CupertinoColors.label,
+                        ? CupertinoColors.quaternaryLabel.resolveFrom(context)
+                        : CupertinoColors.label.resolveFrom(context),
                   ),
                 ),
               ),
@@ -273,8 +275,8 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
                 child: Text(
                   '${item.value}',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: CupertinoColors.label,
+                  style: TextStyle(
+                    color: CupertinoColors.label.resolveFrom(context),
                     fontWeight: FontWeight.w700,
                     fontSize: 22,
                   ),
@@ -299,7 +301,7 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
                     CupertinoIcons.add,
                     size: 18,
                     color: isMax
-                        ? CupertinoColors.quaternaryLabel
+                        ? CupertinoColors.quaternaryLabel.resolveFrom(context)
                         : Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
@@ -331,7 +333,8 @@ class ScoreHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: CupertinoColors.systemGroupedBackground,
+      backgroundColor:
+          CupertinoColors.systemGroupedBackground.resolveFrom(context),
       appBar: CupertinoNavigationBar(
         backgroundColor:
             CupertinoColors.systemGroupedBackground.resolveFrom(context),
@@ -346,10 +349,11 @@ class ScoreHistoryScreen extends StatelessWidget {
             ..sort((a, b) => b.date.compareTo(a.date));
 
           if (entries.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
                 'No saved scores yet.',
-                style: TextStyle(color: CupertinoColors.secondaryLabel),
+                style: TextStyle(
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context)),
               ),
             );
           }
@@ -374,25 +378,28 @@ class ScoreHistoryScreen extends StatelessWidget {
                   margin:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
-                    color: CupertinoColors.secondarySystemGroupedBackground,
+                    color: CupertinoColors.secondarySystemGroupedBackground
+                        .resolveFrom(context),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ListTile(
                     title: Text(
                       'Total Score: ${entry.totalScore}',
-                      style: const TextStyle(
-                        color: CupertinoColors.label,
+                      style: TextStyle(
+                        color: CupertinoColors.label.resolveFrom(context),
                         fontWeight: FontWeight.w700,
                         fontSize: 18,
                       ),
                     ),
                     subtitle: Text(
                       DateFormat.yMMMd().add_jm().format(entry.date),
-                      style: const TextStyle(
-                          color: CupertinoColors.secondaryLabel),
+                      style: TextStyle(
+                          color: CupertinoColors.secondaryLabel
+                              .resolveFrom(context)),
                     ),
-                    trailing: const Icon(CupertinoIcons.chevron_right,
-                        color: CupertinoColors.systemGrey2, size: 16),
+                    trailing: Icon(CupertinoIcons.chevron_right,
+                        color: CupertinoColors.systemGrey2.resolveFrom(context),
+                        size: 16),
                     onTap: () {
                       showCupertinoDialog(
                         context: context,
