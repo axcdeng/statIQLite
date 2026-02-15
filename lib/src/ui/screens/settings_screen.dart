@@ -49,9 +49,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           CupertinoColors.systemGroupedBackground.resolveFrom(context),
       navigationBar: CupertinoNavigationBar(
         middle: const Text('Settings'),
-        backgroundColor:
-            CupertinoColors.systemGroupedBackground.resolveFrom(context),
-        border: null,
       ),
       child: SafeArea(
         child: ListView(

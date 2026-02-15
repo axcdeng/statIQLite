@@ -11,15 +11,22 @@ class AppTheme {
     colorScheme: ColorScheme.fromSeed(
       seedColor: primaryColor,
       primary: primaryColor,
+      onPrimary: Colors.white,
       brightness: Brightness.light,
     ),
     useMaterial3: true,
     fontFamily: '.SF Pro Text',
     splashFactory: NoSplash.splashFactory,
     highlightColor: Colors.transparent,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+    ),
     cupertinoOverrideTheme: const CupertinoThemeData(
       brightness: Brightness.light,
       primaryColor: primaryColor,
+      barBackgroundColor: Colors.white,
     ),
     // Add other overrides as needed...
   );
@@ -28,6 +35,7 @@ class AppTheme {
     colorScheme: ColorScheme.fromSeed(
       seedColor: primaryColor,
       primary: primaryColor,
+      onPrimary: Colors.white,
       brightness: Brightness.dark,
     ),
     useMaterial3: true,
@@ -35,10 +43,16 @@ class AppTheme {
     splashFactory: NoSplash.splashFactory,
     highlightColor: Colors.transparent,
     scaffoldBackgroundColor: _darkBackground,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: _darkBackground,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+    ),
     cupertinoOverrideTheme: const CupertinoThemeData(
       brightness: Brightness.dark,
       primaryColor: primaryColor,
       scaffoldBackgroundColor: _darkBackground,
+      barBackgroundColor: _darkBackground,
     ),
     // Add other overrides as needed...
   );

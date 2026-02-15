@@ -28,7 +28,6 @@ class TeamAtEventScreen extends ConsumerWidget {
       child: CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
           middle: Text('Team ${team.number}'),
-          backgroundColor: CupertinoColors.systemGroupedBackground,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

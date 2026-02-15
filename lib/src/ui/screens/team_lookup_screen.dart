@@ -82,6 +82,8 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
           _worldSkillsData = skillsData;
           _isLoading = false;
         });
+        // Add to history
+        ref.read(historyServiceProvider).addTeamToHistory(team);
       }
     } catch (e) {
       if (mounted) {
@@ -109,7 +111,6 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
       child: CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
           middle: const Text('Lookup'),
-          backgroundColor: CupertinoColors.systemGroupedBackground,
           // Removed trailing link icon
         ),
         child: SafeArea(
@@ -170,15 +171,29 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
 
   Widget _buildTeamsTab() {
     final returnState = ref.watch(returnToEventProvider);
+    final primaryColor = Theme.of(context).colorScheme.primary;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
           if (returnState != null) _buildReturnToEventBanner(returnState),
-          CupertinoSearchTextField(
-            controller: _searchController,
-            placeholder: 'Team Number (e.g. 229V)',
-            onSubmitted: (_) => _search(),
+          Row(
+            children: [
+              Expanded(
+                child: CupertinoSearchTextField(
+                  controller: _searchController,
+                  placeholder: 'Team Number (e.g. 229V)',
+                  onSubmitted: (_) => _search(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                minSize: 0,
+                child: Icon(CupertinoIcons.clock, color: primaryColor),
+                onPressed: () => _showHistory(context),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           if (_isLoading)
@@ -477,6 +492,50 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showHistory(BuildContext context) {
+    final historyService = ref.read(historyServiceProvider);
+    final recentTeams = historyService.getRecentTeams();
+
+    if (recentTeams.isEmpty) {
+      showCupertinoDialog(
+        context: context,
+        builder: (ctx) => CupertinoAlertDialog(
+          title: const Text('No History'),
+          content: const Text('Search for a team to see it here.'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: const Text('Recent Teams'),
+        actions: recentTeams
+            .map((team) => CupertinoActionSheetAction(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _searchController.text = team.number;
+                    _search();
+                  },
+                  child: Text('${team.number} - ${team.name}'),
+                ))
+            .toList(),
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
       ),
     );
   }

@@ -13,7 +13,6 @@ class ExportsScreen extends ConsumerWidget {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: const Text('Export Data'),
-        backgroundColor: CupertinoColors.systemBackground.withOpacity(0.8),
       ),
       child: SafeArea(
         child: Center(

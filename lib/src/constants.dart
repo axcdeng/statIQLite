@@ -10,6 +10,8 @@ class AppConstants {
   static const String matchesBox = 'matches_box';
   static const String scoutEntriesBox = 'scout_entries_box';
   static const String settingsBox = 'settings_box';
+  static const String teamHistoryBox = 'team_history_box';
+  static const String eventHistoryBox = 'event_history_box';
 
   // RobotEvents API
   static const String robotEventsBaseUrl = 'https://www.robotevents.com/api/v2';

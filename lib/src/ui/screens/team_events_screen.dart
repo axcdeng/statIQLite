@@ -91,8 +91,6 @@ class _TeamEventsScreenState extends ConsumerState<TeamEventsScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: Text('${widget.team.number} Events'),
-        backgroundColor:
-            CupertinoColors.systemGroupedBackground.resolveFrom(context),
       ),
       child: Material(
         color: Colors.transparent,

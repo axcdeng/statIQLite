@@ -25,6 +25,14 @@ class Event {
   final String? location;
   @HiveField(8)
   final String? sku;
+  @HiveField(9)
+  final String? country;
+  @HiveField(10)
+  final String? region;
+  @HiveField(11)
+  final String? level;
+  @HiveField(12)
+  final List<String>? grades;
 
   Event({
     required this.id,
@@ -36,6 +44,10 @@ class Event {
     this.lastUpdated,
     this.location,
     this.sku,
+    this.country,
+    this.region,
+    this.level,
+    this.grades,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -63,6 +75,10 @@ class Event {
           : null,
       location: location,
       sku: json['sku'] as String?,
+      country: country,
+      region: region,
+      level: json['level'] as String?,
+      grades: (json['grades'] as List?)?.cast<String>(),
     );
   }
 

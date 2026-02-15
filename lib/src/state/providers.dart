@@ -7,6 +7,7 @@ import 'package:roboscout_iq/src/repositories/teams_repository.dart';
 import 'package:roboscout_iq/src/services/api_client.dart';
 import 'package:roboscout_iq/src/services/export_service.dart';
 import 'package:roboscout_iq/src/services/favorites_service.dart';
+import 'package:roboscout_iq/src/services/history_service.dart';
 import 'package:roboscout_iq/src/services/local_db_service.dart';
 import 'package:roboscout_iq/src/services/rating_service.dart';
 import 'package:roboscout_iq/src/services/secure_storage_service.dart';
@@ -20,6 +21,8 @@ final exportServiceProvider = Provider((ref) => ExportService());
 final favoritesServiceProvider =
     ChangeNotifierProvider((ref) => FavoritesService());
 final secureStorageServiceProvider = Provider((ref) => SecureStorageService());
+final historyServiceProvider =
+    Provider((ref) => HistoryService(ref.read(localDbServiceProvider)));
 
 final settingsProvider =
     StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {

@@ -25,6 +25,8 @@ class LocalDbService {
     await Hive.openBox<ScoutEntry>(AppConstants.scoutEntriesBox);
     await Hive.openBox(AppConstants.settingsBox);
     await Hive.openBox<ScoreEntry>('saved_scores');
+    await Hive.openBox<Team>(AppConstants.teamHistoryBox);
+    await Hive.openBox<Event>(AppConstants.eventHistoryBox);
   }
 
   Box<Event> get eventsBox => Hive.box<Event>(AppConstants.eventsBox);
@@ -35,6 +37,9 @@ class LocalDbService {
       Hive.box<ScoutEntry>(AppConstants.scoutEntriesBox);
   Box get settingsBox => Hive.box(AppConstants.settingsBox);
   Box<ScoreEntry> get scoreEntriesBox => Hive.box<ScoreEntry>('saved_scores');
+  Box<Team> get teamHistoryBox => Hive.box<Team>(AppConstants.teamHistoryBox);
+  Box<Event> get eventHistoryBox =>
+      Hive.box<Event>(AppConstants.eventHistoryBox);
 
   Future<void> clearAllData() async {
     await eventsBox.clear();
@@ -43,5 +48,7 @@ class LocalDbService {
     await scoutEntriesBox.clear();
     await settingsBox.clear();
     await scoreEntriesBox.clear();
+    await teamHistoryBox.clear();
+    await eventHistoryBox.clear();
   }
 }

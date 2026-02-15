@@ -40,9 +40,6 @@ class _ScoutingFormScreenState extends ConsumerState<ScoutingFormScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: const Text('Scout Match'),
-        backgroundColor: CupertinoColors.systemBackground
-            .resolveFrom(context)
-            .withValues(alpha: 0.8),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _saveEntry,

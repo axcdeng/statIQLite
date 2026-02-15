@@ -20,9 +20,6 @@ class MatchDetailScreen extends ConsumerWidget {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: Text(match.name),
-        backgroundColor: CupertinoColors.systemBackground
-            .resolveFrom(context)
-            .withValues(alpha: 0.8),
       ),
       child: SafeArea(
         child: SingleChildScrollView(
