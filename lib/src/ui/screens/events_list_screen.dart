@@ -1,10 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:roboscout_iq/src/utils/country_utils.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:roboscout_iq/src/models/event_model.dart';
 import 'package:roboscout_iq/src/routes.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
+import 'package:roboscout_iq/src/ui/screens/event_detail_screen.dart';
+import 'package:roboscout_iq/src/ui/screens/event_divisions_screen.dart';
 import 'package:roboscout_iq/src/ui/screens/favorites_screen.dart';
 import 'package:roboscout_iq/src/ui/screens/resources_screen.dart';
 import 'package:roboscout_iq/src/ui/screens/settings_screen.dart';
@@ -811,8 +814,13 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
     return GestureDetector(
       onTap: () {
         ref.read(historyServiceProvider).addEventToHistory(event);
-        Navigator.of(context)
-            .pushNamed(AppRoutes.eventDetail, arguments: event);
+        if (event.divisions != null && event.divisions!.length > 1) {
+          Navigator.of(context).push(CupertinoPageRoute(
+              builder: (_) => EventDivisionsScreen(event: event)));
+        } else {
+          Navigator.of(context).push(CupertinoPageRoute(
+              builder: (_) => EventDetailScreen(event: event)));
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -823,7 +831,16 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
         ),
         child: Row(
           children: [
-            Icon(CupertinoIcons.location_solid, size: 14, color: primaryColor),
+            Builder(builder: (context) {
+              var flag = CountryUtils.getFlagEmoji(event.country);
+              if (flag == '🌐' && event.location != null) {
+                final parts = event.location!.split(', ');
+                if (parts.isNotEmpty) {
+                  flag = CountryUtils.getFlagEmoji(parts.last);
+                }
+              }
+              return Text(flag, style: const TextStyle(fontSize: 16));
+            }),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -1128,184 +1145,214 @@ class _SelectionScreenState extends State<_SelectionScreen> {
         decoration: TextDecoration.none,
       ),
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.85,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
         decoration: BoxDecoration(
           color: CupertinoColors.systemBackground.resolveFrom(context),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Select ${widget.title}',
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.none),
-                  ),
-                  Row(
-                    children: [
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        child: const Text('Clear'),
-                        onPressed: () {
-                          setState(() {
-                            _tempSelected.clear();
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        child: const Text('Done',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          widget.onSelected(_tempSelected);
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Search
-            if (widget.showSearch)
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: CupertinoSearchTextField(controller: _searchController),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Select ${widget.title}',
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.none),
+                    ),
+                    Row(
+                      children: [
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          child: const Text('Clear'),
+                          onPressed: () {
+                            setState(() {
+                              _tempSelected.clear();
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 16),
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          child: const Text('Done',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          onPressed: () {
+                            widget.onSelected(_tempSelected);
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            const SizedBox(height: 10),
-            // List + Alpha Index
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      itemCount: sortedAlpha.length,
-                      itemBuilder: (context, index) {
-                        final char = sortedAlpha[index];
-                        final items = grouped[char]!;
-                        _alphaKeys[char] = GlobalKey();
+              // Search
+              if (widget.showSearch) ...[
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                  child:
+                      CupertinoSearchTextField(controller: _searchController),
+                ),
+              ] else ...[
+                const SizedBox(height: 12),
+              ],
+              // List + Alpha Index
+              Flexible(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        controller: _scrollController,
+                        padding: EdgeInsets.zero,
+                        itemCount: sortedAlpha.length,
+                        itemBuilder: (context, index) {
+                          final char = sortedAlpha[index];
+                          final items = grouped[char]!;
+                          _alphaKeys[char] = GlobalKey();
 
-                        return Column(
-                          key: _alphaKeys[char],
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (widget.showAlphaIndex)
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 6),
-                                color: CupertinoColors.systemGrey6
-                                    .resolveFrom(context),
-                                child: Text(
-                                  char,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      decoration: TextDecoration.none),
-                                ),
-                              ),
-                            ...items.map((item) {
-                              final isSelected = _tempSelected.contains(item);
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    if (isSelected) {
-                                      _tempSelected.remove(item);
-                                    } else {
-                                      _tempSelected.add(item);
-                                    }
-                                  });
-                                },
-                                child: Container(
+                          return Column(
+                            key: _alphaKeys[char],
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (widget.showAlphaIndex)
+                                Container(
+                                  width: double.infinity,
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 12),
-                                  decoration: const BoxDecoration(
-                                    border: Border(
-                                        bottom: BorderSide(
-                                            color: CupertinoColors.separator,
-                                            width: 0.5)),
+                                      horizontal: 16, vertical: 6),
+                                  color: CupertinoColors.systemGrey6
+                                      .resolveFrom(context),
+                                  child: Text(
+                                    char,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        decoration: TextDecoration.none),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                          child: Text(
-                                        item,
-                                        style: const TextStyle(
-                                            fontSize: 14,
-                                            decoration: TextDecoration.none),
-                                      )),
-                                      Icon(
-                                        isSelected
-                                            ? CupertinoIcons
-                                                .check_mark_circled_solid
-                                            : CupertinoIcons.circle,
-                                        color: isSelected
-                                            ? primaryColor
-                                            : CupertinoColors.systemGrey4,
-                                        size: 20,
-                                      ),
-                                    ],
+                                ),
+                              ...items.map((item) {
+                                final isSelected = _tempSelected.contains(item);
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      if (isSelected) {
+                                        _tempSelected.remove(item);
+                                      } else {
+                                        _tempSelected.add(item);
+                                      }
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 12),
+                                    decoration: const BoxDecoration(
+                                      border: Border(
+                                          bottom: BorderSide(
+                                              color: CupertinoColors.separator,
+                                              width: 0.5)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                            child: Text(
+                                          item,
+                                          style: const TextStyle(
+                                              fontSize: 16,
+                                              decoration: TextDecoration.none),
+                                        )),
+                                        if (isSelected)
+                                          Icon(
+                                            CupertinoIcons
+                                                .check_mark_circled_solid,
+                                            color: primaryColor,
+                                            size: 22,
+                                          )
+                                        else
+                                          const Icon(
+                                            CupertinoIcons.circle,
+                                            color: CupertinoColors.systemGrey4,
+                                            size: 22,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    // Alpha Index Bar
+                    if (widget.showAlphaIndex)
+                      Container(
+                        width: 30,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                                .split('')
+                                .map((char) {
+                              final hasItems = grouped.containsKey(char);
+                              return GestureDetector(
+                                onTap: hasItems
+                                    ? () => _scrollToAlpha(char)
+                                    : null,
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 2.0),
+                                  child: Text(
+                                    char,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.none,
+                                      color: hasItems
+                                          ? primaryColor
+                                          : CupertinoColors.systemGrey4,
+                                    ),
                                   ),
                                 ),
                               );
-                            }),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  // Alpha Index Bar
-                  if (widget.showAlphaIndex)
-                    Container(
-                      width: 30,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children:
-                            'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((char) {
-                          final hasItems = grouped.containsKey(char);
-                          return GestureDetector(
-                            onTap: hasItems ? () => _scrollToAlpha(char) : null,
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 2.0),
-                              child: Text(
-                                char,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.none,
-                                  color: hasItems
-                                      ? primaryColor
-                                      : CupertinoColors.systemGrey4,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                            }).toList(),
+                          ),
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            // Cancel
-            SafeArea(
-              top: false,
-              child: CupertinoButton(
-                child: const Text('Cancel'),
-                onPressed: () => Navigator.pop(context),
+              // Cancel button only if needed?
+              // The user said "dont include the giant bottom space".
+              // `SafeArea` -> `CupertinoButton` ("Cancel") was at the bottom.
+              // Maybe we generally don't need a "Cancel" button if we have "Done" at the top?
+              // Standard iOS bottom sheets often have a "Done" at top right or a Cancel/Close button.
+              // The screenshot shows "Clear" and "Done" at the top.
+              // The previous code had a "Cancel" button at the bottom.
+              // I'll keep it but ensure it doesn't add huge weird space.
+              Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 8),
+                child: CupertinoButton(
+                  child: const Text('Cancel'),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

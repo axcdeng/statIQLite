@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:roboscout_iq/src/constants.dart';
+import 'package:roboscout_iq/src/models/division.dart';
 import 'package:roboscout_iq/src/models/event_model.dart';
 import 'package:roboscout_iq/src/models/match_model.dart';
 import 'package:roboscout_iq/src/models/scout_entry_model.dart';
@@ -13,6 +14,7 @@ class LocalDbService {
     // Register Adapters
     // TODO: Verify typeIds in generated adapters match here
     Hive.registerAdapter(EventAdapter());
+    Hive.registerAdapter(DivisionAdapter());
     Hive.registerAdapter(TeamAdapter());
     Hive.registerAdapter(MatchAdapter());
     Hive.registerAdapter(ScoutEntryAdapter());

@@ -6,7 +6,9 @@ import 'package:roboscout_iq/src/models/team_model.dart';
 import 'package:roboscout_iq/src/routes.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
 import 'package:roboscout_iq/src/ui/screens/event_detail_screen.dart';
+import 'package:roboscout_iq/src/ui/screens/event_divisions_screen.dart';
 import 'package:roboscout_iq/src/ui/screens/events_list_screen.dart';
+import 'package:roboscout_iq/src/utils/country_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class TeamLookupScreen extends ConsumerStatefulWidget {
@@ -100,9 +102,18 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     ref.listen(teamSearchQueryProvider, (previous, next) {
-      if (next != null && next.isNotEmpty && next != _searchController.text) {
-        _searchController.text = next;
-        _search();
+      if (next != null && next.isNotEmpty) {
+        // Ensure we are on the Teams tab
+        if (_tabController.index != 0) {
+          setState(() {
+            _tabController.index = 0;
+          });
+        }
+
+        if (next != _searchController.text) {
+          _searchController.text = next;
+          _search();
+        }
       }
     });
 
@@ -233,9 +244,20 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
           const SizedBox(width: 12),
           Expanded(
             child: GestureDetector(
-              onTap: () {
+              onTap: () async {
                 ref.read(returnToEventProvider.notifier).state = null;
-                final event = Event(
+                // Try to get full event to check divisions
+                Event? event;
+                try {
+                  event = await ref
+                      .read(eventsRepositoryProvider)
+                      .getEventById(returnState.eventId);
+                } catch (e) {
+                  print('Error fetching event for return: $e');
+                }
+
+                // Fallback if fetch fails (use basic info)
+                event ??= Event(
                   id: returnState.eventId,
                   sku: '',
                   name: returnState.eventName,
@@ -245,10 +267,18 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                   venue: '',
                   location: '',
                 );
-                Navigator.of(context).push(CupertinoPageRoute(
-                    builder: (_) => EventDetailScreen(
-                        event: event,
-                        initiallySelectedTeam: returnState.team)));
+
+                if (mounted) {
+                  if (event.divisions != null && event.divisions!.length > 1) {
+                    Navigator.of(context).push(CupertinoPageRoute(
+                        builder: (_) => EventDivisionsScreen(event: event!)));
+                  } else {
+                    Navigator.of(context).push(CupertinoPageRoute(
+                        builder: (_) => EventDetailScreen(
+                            event: event!,
+                            initiallySelectedTeam: returnState.team)));
+                  }
+                }
               },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,9 +332,21 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
               children: [
                 Row(
                   children: [
-                    Text('TEAM ${_team!.number}',
-                        style: const TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.bold)),
+                    // Parse country from location for flag
+                    Builder(builder: (context) {
+                      String? country;
+                      if (_team!.location != null &&
+                          _team!.location!.isNotEmpty) {
+                        final parts = _team!.location!.split(', ');
+                        if (parts.isNotEmpty) {
+                          country = parts.last;
+                        }
+                      }
+                      final flag = CountryUtils.getFlagEmoji(country);
+                      return Text('$flag ${_team!.number}',
+                          style: const TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.bold));
+                    }),
                     if (gradeLabel != null) ...[
                       const SizedBox(width: 8),
                       Container(
@@ -453,34 +495,47 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('EPA per Match',
-              style: TextStyle(
-                  fontSize: 17,
-                  letterSpacing: -0.4,
-                  color: CupertinoColors.secondaryLabel.resolveFrom(context))),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: () {
-              showCupertinoDialog(
-                context: context,
-                barrierDismissible: true,
-                builder: (ctx) => CupertinoAlertDialog(
-                  title: const Text('EPA (Expected Points Added)'),
-                  content: const Text(
-                      "Estimated Points Added per match. A metric to estimate a team's average contribution to the score."),
-                  actions: [
-                    CupertinoDialogAction(
-                      child: const Text('OK'),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: 'EPA per Match ',
+                  style: TextStyle(
+                      fontSize: 17,
+                      letterSpacing: -0.4,
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context)),
                 ),
-              );
-            },
-            child: const Icon(CupertinoIcons.info_circle,
-                size: 16, color: CupertinoColors.systemGrey),
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: GestureDetector(
+                    onTap: () {
+                      showCupertinoDialog(
+                        context: context,
+                        barrierDismissible: true,
+                        builder: (ctx) => CupertinoAlertDialog(
+                          title: const Text('EPA (Expected Points Added)'),
+                          content: const Text(
+                              "Estimated Points Added per match. A metric to estimate a team's average contribution to the score."),
+                          actions: [
+                            CupertinoDialogAction(
+                              child: const Text('OK'),
+                              onPressed: () => Navigator.pop(ctx),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4.0),
+                      child: const Icon(CupertinoIcons.info_circle,
+                          size: 18, color: CupertinoColors.systemGrey),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const Spacer(),
           Text(

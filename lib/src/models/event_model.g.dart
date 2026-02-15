@@ -26,13 +26,20 @@ class EventAdapter extends TypeAdapter<Event> {
       lastUpdated: fields[6] as DateTime?,
       location: fields[7] as String?,
       sku: fields[8] as String?,
+      country: fields[9] as String?,
+      region: fields[10] as String?,
+      level: fields[11] as String?,
+      grades: (fields[12] as List?)?.cast<String>(),
+      divisions: (fields[13] as List?)?.cast<Division>(),
+      city: fields[14] as String?,
+      seasonName: fields[15] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Event obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +57,21 @@ class EventAdapter extends TypeAdapter<Event> {
       ..writeByte(7)
       ..write(obj.location)
       ..writeByte(8)
-      ..write(obj.sku);
+      ..write(obj.sku)
+      ..writeByte(9)
+      ..write(obj.country)
+      ..writeByte(10)
+      ..write(obj.region)
+      ..writeByte(11)
+      ..write(obj.level)
+      ..writeByte(12)
+      ..write(obj.grades)
+      ..writeByte(13)
+      ..write(obj.divisions)
+      ..writeByte(14)
+      ..write(obj.city)
+      ..writeByte(15)
+      ..write(obj.seasonName);
   }
 
   @override
@@ -80,6 +101,16 @@ Event _$EventFromJson(Map<String, dynamic> json) => Event(
           : DateTime.parse(json['lastUpdated'] as String),
       location: json['location'] as String?,
       sku: json['sku'] as String?,
+      country: json['country'] as String?,
+      region: json['region'] as String?,
+      level: json['level'] as String?,
+      grades:
+          (json['grades'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      divisions: (json['divisions'] as List<dynamic>?)
+          ?.map((e) => Division.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      city: json['city'] as String?,
+      seasonName: json['seasonName'] as String?,
     );
 
 Map<String, dynamic> _$EventToJson(Event instance) => <String, dynamic>{
@@ -92,4 +123,11 @@ Map<String, dynamic> _$EventToJson(Event instance) => <String, dynamic>{
       'lastUpdated': instance.lastUpdated?.toIso8601String(),
       'location': instance.location,
       'sku': instance.sku,
+      'country': instance.country,
+      'region': instance.region,
+      'level': instance.level,
+      'grades': instance.grades,
+      'divisions': instance.divisions,
+      'city': instance.city,
+      'seasonName': instance.seasonName,
     };

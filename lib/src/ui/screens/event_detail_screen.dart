@@ -3,17 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:roboscout_iq/src/models/division.dart';
 import 'package:roboscout_iq/src/models/event_model.dart';
 import 'package:roboscout_iq/src/models/match_model.dart';
 import 'package:roboscout_iq/src/models/team_model.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
+import 'package:roboscout_iq/src/ui/screens/event_info_screen.dart';
 import 'package:roboscout_iq/src/ui/screens/team_at_event_screen.dart';
+import 'package:roboscout_iq/src/utils/country_utils.dart';
 
 class EventDetailScreen extends ConsumerStatefulWidget {
   final Event event;
   final Team? initiallySelectedTeam;
+  final Division? division;
+
   const EventDetailScreen(
-      {super.key, required this.event, this.initiallySelectedTeam});
+      {super.key,
+      required this.event,
+      this.initiallySelectedTeam,
+      this.division});
 
   @override
   ConsumerState<EventDetailScreen> createState() => _EventDetailScreenState();
@@ -51,9 +59,21 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
       backgroundColor: CupertinoColors.systemGroupedBackground,
       navigationBar: CupertinoNavigationBar(
         transitionBetweenRoutes: false,
-        middle: Text(widget.event.name,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            overflow: TextOverflow.ellipsis),
+        middle: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(widget.event.name,
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis),
+            if (widget.division != null)
+              Text(widget.division!.name,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context))),
+          ],
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -78,10 +98,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
               ),
             CupertinoButton(
               padding: EdgeInsets.zero,
-              child: Icon(CupertinoIcons.search, color: primaryColor, size: 20),
+              child: Icon(CupertinoIcons.info, color: primaryColor, size: 20),
               onPressed: () {
-                ref.read(bottomNavIndexProvider.notifier).state = 2;
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.of(context).push(CupertinoPageRoute(
+                    builder: (_) => EventInfoScreen(event: widget.event)));
               },
             ),
           ],
@@ -172,11 +192,13 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                 child: IndexedStack(
                   index: _tabController.index,
                   children: [
-                    _TeamsList(event: widget.event),
-                    _MatchesList(event: widget.event),
-                    _RankingsList(event: widget.event),
-                    _SkillsList(event: widget.event),
-                    _AwardsList(event: widget.event),
+                    _TeamsList(event: widget.event, division: widget.division),
+                    _MatchesList(
+                        event: widget.event, division: widget.division),
+                    _RankingsList(
+                        event: widget.event, division: widget.division),
+                    _SkillsList(event: widget.event, division: widget.division),
+                    _AwardsList(event: widget.event, division: widget.division),
                   ],
                 ),
               ),
@@ -192,7 +214,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
 
 class _TeamsList extends ConsumerWidget {
   final Event event;
-  const _TeamsList({required this.event});
+  final Division? division;
+  const _TeamsList({required this.event, this.division});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -227,8 +250,17 @@ class _TeamsList extends ConsumerWidget {
               margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               children: teams.map((team) {
                 return CupertinoListTile.notched(
-                  leading:
-                      Icon(CupertinoIcons.person_2_fill, color: primaryColor),
+                  leading: Builder(builder: (context) {
+                    String? country;
+                    if (team.location != null && team.location!.isNotEmpty) {
+                      final parts = team.location!.split(', ');
+                      if (parts.isNotEmpty) {
+                        country = parts.last;
+                      }
+                    }
+                    return Text(CountryUtils.getFlagEmoji(country),
+                        style: const TextStyle(fontSize: 24));
+                  }),
                   title: Text(team.number,
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(team.name,
@@ -253,7 +285,8 @@ class _TeamsList extends ConsumerWidget {
 
 class _MatchesList extends ConsumerStatefulWidget {
   final Event event;
-  const _MatchesList({required this.event});
+  final Division? division;
+  const _MatchesList({required this.event, this.division});
 
   @override
   ConsumerState<_MatchesList> createState() => _MatchesListState();
@@ -269,7 +302,14 @@ class _MatchesListState extends ConsumerState<_MatchesList> {
     return ValueListenableBuilder<Box<MatchModel>>(
       valueListenable: matchesRepo.watchMatches(),
       builder: (context, box, _) {
-        final matches = matchesRepo.getMatchesForEvent(widget.event.id);
+        var matches = matchesRepo.getMatchesForEvent(widget.event.id);
+
+        if (widget.division != null) {
+          matches = matches
+              .where((m) => m.divisionId == widget.division!.id)
+              .toList();
+        }
+
         if (matches.isEmpty) {
           return const Center(
               child: Text('No matches loaded.',
@@ -467,7 +507,8 @@ class MatchTile extends StatelessWidget {
 
 class _RankingsList extends ConsumerWidget {
   final Event event;
-  const _RankingsList({required this.event});
+  final Division? division;
+  const _RankingsList({required this.event, this.division});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -490,7 +531,13 @@ class _RankingsList extends ConsumerWidget {
                   style: TextStyle(color: CupertinoColors.secondaryLabel)));
         }
 
-        final rankings = List<Map<String, dynamic>>.from(snapshot.data!);
+        var rankings = List<Map<String, dynamic>>.from(snapshot.data!);
+
+        if (division != null) {
+          rankings =
+              rankings.where((r) => r['divisionId'] == division!.id).toList();
+        }
+
         rankings.sort((a, b) {
           final r1 = a['rank'] as int? ?? 999;
           final r2 = b['rank'] as int? ?? 999;
@@ -548,7 +595,8 @@ class _RankingsList extends ConsumerWidget {
 
 class _SkillsList extends ConsumerWidget {
   final Event event;
-  const _SkillsList({required this.event});
+  final Division? division;
+  const _SkillsList({required this.event, this.division});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -572,7 +620,26 @@ class _SkillsList extends ConsumerWidget {
         }
 
         // Group skills by team and aggregate scores
-        final skillsRaw = snapshot.data!;
+        var skillsRaw = snapshot.data!;
+
+        if (division != null) {
+          // Note: Skills might be shared, but if we have division data, we can filter.
+          // User requested explicit text saying skills are shared.
+          // But if the API returns division-specific skills list, we might have duplicates?
+          // Usually skills are global to the event.
+          // Let's filter if divisionId is present, otherwise show all.
+          // BUT: "in Skills tab add a small info section (thin) that says Skills are shared between all divisions."
+          // This implies we should maybe NOT filter completely, or at least show the message.
+          // If I filter, I might hide skills done in other divisions if they are tracked that way?
+          // RobotEvents usually aggregates skills for the whole event.
+          // However, my ApiClient injects divisionId from where it fetched it.
+          // If I fetch skills from Division A endpoint, do I get skills from Division B?
+          // Usually no.
+          // So if we have multiple divisions, we probably want to see ALL skills for the event?
+          // "Skills are shared between all divisions" suggests the list should include everyone.
+          // So I will NOT filter by division here, but I WILL add the info section.
+        }
+
         final teamSkills = <int, _TeamSkillAggregate>{};
 
         for (final skill in skillsRaw) {
@@ -607,59 +674,88 @@ class _SkillsList extends ConsumerWidget {
           sortedTeams[i].rank = i + 1;
         }
 
-        return ListView.builder(
-          padding: EdgeInsets.zero,
-          itemCount: sortedTeams.length,
-          itemBuilder: (context, index) {
-            final item = sortedTeams[index];
-            return CupertinoListTile.notched(
-              leading: Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: CupertinoColors.secondarySystemGroupedBackground
-                      .resolveFrom(context),
-                  shape: BoxShape.circle,
-                ),
-                child: Text('${item.rank}',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: CupertinoColors.label.resolveFrom(context))),
-              ),
-              title: Text(item.teamNumber,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 17)),
-              subtitle: Text(
-                  'Prog: ${item.programming}    Driver: ${item.driver}',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color:
-                          CupertinoColors.secondaryLabel.resolveFrom(context))),
-              trailing: Container(
+        return Column(
+          children: [
+            if (division != null)
+              Container(
+                width: double.infinity,
+                color: CupertinoColors.systemYellow.withOpacity(0.1),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${item.combinedScore}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: primaryColor,
-                    fontSize: 18,
-                  ),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    const Icon(CupertinoIcons.info_circle_fill,
+                        size: 14, color: CupertinoColors.systemYellow),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Skills are shared between all divisions.',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: CupertinoColors.label.resolveFrom(context)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              onTap: () {
-                ref.read(teamSearchQueryProvider.notifier).state =
-                    item.teamNumber;
-                ref.read(bottomNavIndexProvider.notifier).state = 2;
-              },
-            );
-          },
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: sortedTeams.length,
+                itemBuilder: (context, index) {
+                  final item = sortedTeams[index];
+                  return CupertinoListTile.notched(
+                    leading: Container(
+                      width: 32,
+                      height: 32,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.secondarySystemGroupedBackground
+                            .resolveFrom(context),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text('${item.rank}',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color:
+                                  CupertinoColors.label.resolveFrom(context))),
+                    ),
+                    title: Text(item.teamNumber,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 17)),
+                    subtitle: Text(
+                        'Prog: ${item.programming}    Driver: ${item.driver}',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: CupertinoColors.secondaryLabel
+                                .resolveFrom(context))),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${item.combinedScore}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: primaryColor,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    onTap: () {
+                      ref.read(teamSearchQueryProvider.notifier).state =
+                          item.teamNumber;
+                      ref.read(bottomNavIndexProvider.notifier).state = 2;
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
     );
@@ -685,7 +781,8 @@ class _TeamSkillAggregate {
 
 class _AwardsList extends ConsumerWidget {
   final Event event;
-  const _AwardsList({required this.event});
+  final Division? division;
+  const _AwardsList({required this.event, this.division});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -128,12 +128,21 @@ class ApiClient {
     }
   }
 
+  Future<Event> getEvent(int eventId) async {
+    await _addAuthHeader();
+    try {
+      final response = await _dio.get('/events/$eventId');
+      return Event.fromJson(response.data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<List<Team>> getTeams(int eventId) async {
     await _addAuthHeader();
     try {
-      final response = await _dio.get('/events/$eventId/teams');
-      final data = response.data['data'] as List;
-      return data.map((json) => Team.fromJson(json)).toList();
+      final allItems = await _fetchAllPages('/events/$eventId/teams', {});
+      return allItems.map((json) => Team.fromJson(json)).toList();
     } catch (e) {
       if (e is DioException && e.response?.statusCode == 404) {
         return [];
@@ -515,6 +524,10 @@ class ApiClient {
             {},
             perPage: 250,
           );
+          // Inject division ID
+          for (var item in pages) {
+            item['divisionId'] = divId;
+          }
           allRankings.addAll(pages);
         } catch (e) {
           print('Error fetching rankings for division $divId: $e');
@@ -552,6 +565,10 @@ class ApiClient {
               {},
               perPage: 250,
             );
+            // Inject division ID
+            for (var item in pages) {
+              item['divisionId'] = divId;
+            }
             allSkills.addAll(pages);
           } catch (e) {
             print('Error fetching skills for division $divId: $e');

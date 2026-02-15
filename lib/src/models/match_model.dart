@@ -34,6 +34,8 @@ class MatchModel {
   final List<String> redAllianceTeamNums;
   @HiveField(13)
   final List<String> blueAllianceTeamNums;
+  @HiveField(14)
+  final int? divisionId;
 
   MatchModel({
     required this.id,
@@ -50,6 +52,7 @@ class MatchModel {
     this.redScore,
     this.blueScore,
     this.winner,
+    this.divisionId,
   });
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
@@ -114,6 +117,11 @@ class MatchModel {
       redScore: rScore,
       blueScore: bScore,
       winner: winner,
+      divisionId: json['division'] != null
+          ? (json['division'] is int
+              ? json['division']
+              : (json['division'] as Map)['id'] as int)
+          : null,
     );
   }
 

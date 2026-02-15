@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
+import 'package:roboscout_iq/src/ui/screens/event_detail_screen.dart';
+import 'package:roboscout_iq/src/ui/screens/event_divisions_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -153,7 +155,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             const SizedBox(height: 24),
 
-            // Section: Data Management
             _buildSectionHeader('Data Management'),
             Container(
               decoration: BoxDecoration(
@@ -180,6 +181,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     icon: CupertinoIcons.trash,
                     iconColor: CupertinoColors.destructiveRed,
                     onTap: () => _confirmPurge(context),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Section: Advanced (Cleaned up)
+            _buildSectionHeader('Advanced'),
+            Container(
+              decoration: BoxDecoration(
+                color: CupertinoColors.secondarySystemGroupedBackground
+                    .resolveFrom(context),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                children: [
+                  _buildListTile(
+                    title: 'Debug: Open Event by SKU',
+                    titleColor: CupertinoColors.systemOrange,
+                    icon: CupertinoIcons.ant_fill,
+                    iconColor: CupertinoColors.systemOrange,
+                    onTap: () {
+                      _showSkuDialog(context, ref);
+                    },
                   ),
                 ],
               ),
@@ -371,6 +397,82 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               Navigator.pop(context);
             },
             child: const Text('Purge'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSkuDialog(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Enter Event SKU'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 16.0),
+          child: CupertinoTextField(
+            controller: controller,
+            placeholder: 'RE-VIQRC-XXXX-XXXX',
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: const Text('Open'),
+            onPressed: () async {
+              final sku = controller.text.trim();
+              if (sku.isEmpty) return;
+              Navigator.pop(context);
+
+              try {
+                // Fetch event by SKU
+                final fetchedEvents = await ref
+                    .read(eventsRepositoryProvider)
+                    .getEventsBySkus([sku]);
+
+                if (fetchedEvents.isNotEmpty) {
+                  final eventId = fetchedEvents.first.id;
+
+                  // Fetch fresh event details to ensure divisions are loaded
+                  final fullEvent = await ref
+                      .read(eventsRepositoryProvider)
+                      .getEventById(eventId);
+
+                  if (fullEvent != null && context.mounted) {
+                    if (fullEvent.divisions != null &&
+                        fullEvent.divisions!.length > 1) {
+                      Navigator.of(context).push(CupertinoPageRoute(
+                          builder: (_) =>
+                              EventDivisionsScreen(event: fullEvent)));
+                    } else {
+                      Navigator.of(context).push(CupertinoPageRoute(
+                          builder: (_) => EventDetailScreen(event: fullEvent)));
+                    }
+                  }
+                } else {
+                  if (context.mounted) {
+                    showCupertinoDialog(
+                        context: context,
+                        builder: (context) => CupertinoAlertDialog(
+                              title: const Text('Error'),
+                              content: const Text('Event not found'),
+                              actions: [
+                                CupertinoDialogAction(
+                                    child: const Text('OK'),
+                                    onPressed: () => Navigator.pop(context))
+                              ],
+                            ));
+                  }
+                }
+              } catch (e) {
+                print('Error opening SKU: $e');
+              }
+            },
           ),
         ],
       ),

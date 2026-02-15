@@ -5,8 +5,9 @@ import 'package:intl/intl.dart';
 
 import 'package:roboscout_iq/src/models/event_model.dart';
 import 'package:roboscout_iq/src/models/match_model.dart';
-import 'package:roboscout_iq/src/routes.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
+import 'package:roboscout_iq/src/ui/screens/event_detail_screen.dart';
+import 'package:roboscout_iq/src/ui/screens/event_divisions_screen.dart';
 
 /// Data holder for a team's live event stats.
 class _TeamEventStats {
@@ -276,8 +277,15 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                                   .resolveFrom(context))),
                       trailing: const CupertinoListTileChevron(),
                       onTap: () {
-                        Navigator.of(context)
-                            .pushNamed(AppRoutes.eventDetail, arguments: event);
+                        if (event.divisions != null &&
+                            event.divisions!.length > 1) {
+                          Navigator.of(context).push(CupertinoPageRoute(
+                              builder: (_) =>
+                                  EventDivisionsScreen(event: event)));
+                        } else {
+                          Navigator.of(context).push(CupertinoPageRoute(
+                              builder: (_) => EventDetailScreen(event: event)));
+                        }
                       },
                     );
                   }).toList(),
@@ -393,10 +401,14 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           // Event Name with accent bar — tappable to view event
           GestureDetector(
             onTap: () {
-              Navigator.of(context).pushNamed(
-                AppRoutes.eventDetail,
-                arguments: stats.event,
-              );
+              if (stats.event.divisions != null &&
+                  stats.event.divisions!.length > 1) {
+                Navigator.of(context).push(CupertinoPageRoute(
+                    builder: (_) => EventDivisionsScreen(event: stats.event)));
+              } else {
+                Navigator.of(context).push(CupertinoPageRoute(
+                    builder: (_) => EventDetailScreen(event: stats.event)));
+              }
             },
             child: Row(
               children: [

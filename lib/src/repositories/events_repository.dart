@@ -70,6 +70,20 @@ class EventsRepository {
     return _localDb.eventsBox.values.toList();
   }
 
+  Future<Event?> getEventById(int id) async {
+    if (_localDb.eventsBox.containsKey(id)) {
+      return _localDb.eventsBox.get(id);
+    }
+    try {
+      final event = await _apiClient.getEvent(id);
+      await _localDb.eventsBox.put(id, event);
+      return event;
+    } catch (e) {
+      print('Error getting event $id: $e');
+      return null;
+    }
+  }
+
   Future<List<Event>> searchEvents(String name) async {
     return _apiClient.searchEvents(name: name);
   }

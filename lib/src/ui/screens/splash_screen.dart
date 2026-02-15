@@ -39,17 +39,52 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.precision_manufacturing, size: 80, color: Colors.indigo),
-            SizedBox(height: 20),
-            Text('RoboScout IQ',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
-            CircularProgressIndicator(),
+            Image.asset(
+              Theme.of(context).brightness == Brightness.dark
+                  ? 'assets/images/light.png'
+                  : 'assets/images/dark.png',
+              height: 100,
+              errorBuilder: (context, error, stackTrace) {
+                return Text(
+                  'Error: $error',
+                  style: const TextStyle(color: Colors.red),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'statIQ',
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Lite',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const CircularProgressIndicator(),
           ],
         ),
       ),

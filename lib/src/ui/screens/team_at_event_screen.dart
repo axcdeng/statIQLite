@@ -8,6 +8,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:roboscout_iq/src/ui/screens/event_detail_screen.dart'; // For MatchTile
 
 import 'package:roboscout_iq/src/models/event_model.dart'; // Make sure Event is imported
+import 'package:roboscout_iq/src/utils/country_utils.dart';
 
 class TeamAtEventScreen extends ConsumerWidget {
   final Team team;
@@ -27,7 +28,17 @@ class TeamAtEventScreen extends ConsumerWidget {
       color: Colors.transparent,
       child: CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
-          middle: Text('Team ${team.number}'),
+          middle: Builder(builder: (context) {
+            String? country;
+            if (team.location != null && team.location!.isNotEmpty) {
+              final parts = team.location!.split(', ');
+              if (parts.isNotEmpty) {
+                country = parts.last;
+              }
+            }
+            final flag = CountryUtils.getFlagEmoji(country);
+            return Text('$flag ${team.number}');
+          }),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -69,31 +80,6 @@ class TeamAtEventScreen extends ConsumerWidget {
         child: SafeArea(
           child: Column(
             children: [
-              // Event Context Header
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGroupedBackground,
-                  border: Border(
-                    bottom: BorderSide(
-                        color: CupertinoColors.separator.withOpacity(0.5)),
-                  ),
-                ),
-                child: Text(
-                  event.name,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: CupertinoColors.systemGrey2, // Brightened
-                    letterSpacing: -0.1,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-
               Expanded(
                 child: ValueListenableBuilder<Box<MatchModel>>(
                   valueListenable: matchesRepo.watchMatches(),

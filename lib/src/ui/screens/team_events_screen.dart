@@ -8,6 +8,7 @@ import 'package:roboscout_iq/src/models/match_model.dart';
 import 'package:roboscout_iq/src/models/team_model.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
 import 'package:roboscout_iq/src/ui/screens/event_detail_screen.dart'; // For MatchTile
+import 'package:roboscout_iq/src/ui/screens/event_divisions_screen.dart';
 
 class TeamEventsScreen extends ConsumerStatefulWidget {
   final Team team;
@@ -266,8 +267,13 @@ class _EventDetails extends ConsumerWidget {
               color: primaryColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(8),
               onPressed: () {
-                Navigator.of(context).push(CupertinoPageRoute(
-                    builder: (_) => EventDetailScreen(event: event)));
+                if (event.divisions != null && event.divisions!.length > 1) {
+                  Navigator.of(context).push(CupertinoPageRoute(
+                      builder: (_) => EventDivisionsScreen(event: event)));
+                } else {
+                  Navigator.of(context).push(CupertinoPageRoute(
+                      builder: (_) => EventDetailScreen(event: event)));
+                }
               },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,

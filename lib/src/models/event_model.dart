@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:roboscout_iq/src/models/division.dart';
 
 part 'event_model.g.dart';
 
@@ -33,6 +34,12 @@ class Event {
   final String? level;
   @HiveField(12)
   final List<String>? grades;
+  @HiveField(13)
+  final List<Division>? divisions;
+  @HiveField(14)
+  final String? city;
+  @HiveField(15)
+  final String? seasonName;
 
   Event({
     required this.id,
@@ -48,6 +55,9 @@ class Event {
     this.region,
     this.level,
     this.grades,
+    this.divisions,
+    this.city,
+    this.seasonName,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -79,6 +89,11 @@ class Event {
       region: region,
       level: json['level'] as String?,
       grades: (json['grades'] as List?)?.cast<String>(),
+      divisions: (json['divisions'] as List?)
+          ?.map((e) => Division.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      city: city,
+      seasonName: (json['season'] as Map<String, dynamic>?)?['name'] as String?,
     );
   }
 
