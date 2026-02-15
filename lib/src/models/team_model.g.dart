@@ -29,13 +29,14 @@ class TeamAdapter extends TypeAdapter<Team> {
       trueskill: fields[9] as double?,
       ccwm: fields[10] as double?,
       statiq: (fields[11] as Map?)?.cast<String, dynamic>(),
+      grade: fields[12] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Team obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -59,7 +60,9 @@ class TeamAdapter extends TypeAdapter<Team> {
       ..writeByte(10)
       ..write(obj.ccwm)
       ..writeByte(11)
-      ..write(obj.statiq);
+      ..write(obj.statiq)
+      ..writeByte(12)
+      ..write(obj.grade);
   }
 
   @override
@@ -90,6 +93,7 @@ Team _$TeamFromJson(Map<String, dynamic> json) => Team(
       trueskill: (json['trueskill'] as num?)?.toDouble(),
       ccwm: (json['ccwm'] as num?)?.toDouble(),
       statiq: json['statiq'] as Map<String, dynamic>?,
+      grade: json['grade'] as String?,
     );
 
 Map<String, dynamic> _$TeamToJson(Team instance) => <String, dynamic>{
@@ -105,4 +109,5 @@ Map<String, dynamic> _$TeamToJson(Team instance) => <String, dynamic>{
       'trueskill': instance.trueskill,
       'ccwm': instance.ccwm,
       'statiq': instance.statiq,
+      'grade': instance.grade,
     };

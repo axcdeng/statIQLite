@@ -1,9 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 final favoritesServiceProvider = Provider((ref) => FavoritesService());
 
-class FavoritesService {
+class FavoritesService extends ChangeNotifier {
   static const String _boxName = 'favorites_box';
   static const String _favoriteTeamsKey = 'favorite_teams';
   static const String _favoriteEventsKey = 'favorite_events';
@@ -16,6 +17,7 @@ class FavoritesService {
     } else {
       _box = Hive.box(_boxName);
     }
+    notifyListeners();
   }
 
   // Teams
@@ -30,6 +32,7 @@ class FavoritesService {
     if (!current.contains(teamNumber)) {
       current.add(teamNumber);
       await _box?.put(_favoriteTeamsKey, current);
+      notifyListeners();
     }
   }
 
@@ -38,6 +41,7 @@ class FavoritesService {
     if (current.contains(teamNumber)) {
       current.remove(teamNumber);
       await _box?.put(_favoriteTeamsKey, current);
+      notifyListeners();
     }
   }
 
@@ -53,18 +57,20 @@ class FavoritesService {
   }
 
   Future<void> addFavoriteEvent(String eventSku) async {
-    final current = getFavoriteEvents();
+    final current = List<String>.from(getFavoriteEvents());
     if (!current.contains(eventSku)) {
       current.add(eventSku);
       await _box?.put(_favoriteEventsKey, current);
+      notifyListeners();
     }
   }
 
   Future<void> removeFavoriteEvent(String eventSku) async {
-    final current = getFavoriteEvents();
+    final current = List<String>.from(getFavoriteEvents());
     if (current.contains(eventSku)) {
       current.remove(eventSku);
       await _box?.put(_favoriteEventsKey, current);
+      notifyListeners();
     }
   }
 

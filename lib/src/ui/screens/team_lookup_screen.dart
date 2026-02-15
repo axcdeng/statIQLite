@@ -1,7 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:roboscout_iq/src/models/event_model.dart';
 import 'package:roboscout_iq/src/models/team_model.dart';
+import 'package:roboscout_iq/src/routes.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
+import 'package:roboscout_iq/src/ui/screens/event_detail_screen.dart';
 import 'package:roboscout_iq/src/ui/screens/events_list_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -20,9 +24,8 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
   // Search State
   bool _isLoading = false;
   Team? _team;
-  Map<String, dynamic>? _skills;
-  Map<String, dynamic>? _awards;
-  List<dynamic>? _events;
+  Map<String, dynamic>? _worldSkillsData;
+  // List<dynamic>? _events; // Not strictly needed unless we want to show count
   String? _errorMessage;
 
   @override
@@ -42,72 +45,41 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
 
-    // Sync manual search to provider so it knows current state
-    ref.read(teamSearchQueryProvider.notifier).state = query;
-
-    // Sync manual search to provider so it knows current state
-    // We use a post-frame callback or just set it here to avoid conflicts?
-    // Setting it here is fine as long as the listener doesn't cause a loop.
-    // The listener checks if (next != _searchController.text).
-    // Here we set provider = query. Listener sees next == query == text. No loop.
     ref.read(teamSearchQueryProvider.notifier).state = query;
 
     setState(() {
       _isLoading = true;
       _errorMessage = null;
       _team = null;
-      _skills = null;
-      _awards = null;
-      _events = null;
+      _worldSkillsData = null;
     });
 
     try {
       final repo = ref.read(teamsRepositoryProvider);
 
-      // 1. Search for team
+      // 1. Search for team (limit 1)
       final teams = await repo.searchTeams(query);
 
       if (teams.isEmpty) {
-        setState(() {
-          _errorMessage = 'Team not found';
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Team not found';
+            _isLoading = false;
+          });
+        }
         return;
       }
 
-      // Exact match preference, or first result
-      final team = teams.firstWhere(
-        (t) => t.number.toLowerCase() == query.toLowerCase(),
-        orElse: () => teams.first,
-      );
+      final team = teams.first;
 
-      // 2. Fetch Details in parallel
-      final results = await Future.wait([
-        repo.getTeamSkills(team.id),
-        repo.getTeamAwards(team.id),
-        repo.getTeamEvents(team.id),
-      ]);
+      // 2. Fetch World Skills Data (pass grade level for targeted search)
+      final skillsData =
+          await repo.getTeamSkillRank(team.number, gradeLevel: team.grade);
 
       if (mounted) {
         setState(() {
           _team = team;
-          // Process skills (find highest robot/drivers skills)
-          // RoboStem/RobotEvents usually gives list of skills entries.
-          // We need to parse this for "World Skills Ranking" which might be in statiq or calculated.
-          // For now, storing raw response.
-          // Actually, getTeamSkills returns List<Map>, let's grab the composite if available.
-          // _skills = results[0] as List<Map<String, dynamic>>; // dynamic casting issue likely
-          // Simplified for now:
-          _skills = (results[0] as List).isNotEmpty
-              ? (results[0] as List).first as Map<String, dynamic>
-              : null;
-
-          // Awards count
-          // _awards = results[1];
-
-          // Events
-          _events = results[2] as List<dynamic>;
-
+          _worldSkillsData = skillsData;
           _isLoading = false;
         });
       }
@@ -123,67 +95,164 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Listen for search query changes from other screens (e.g. Favorites)
+    const primaryColor = Color(0xFF49CAEB);
+
     ref.listen(teamSearchQueryProvider, (previous, next) {
       if (next != null && next.isNotEmpty && next != _searchController.text) {
         _searchController.text = next;
         _search();
-        // Clear the provider so we don't re-trigger unnecessarily if we come back
-        // ref.read(teamSearchQueryProvider.notifier).state = null;
-        // actually better to leave it or clear it after search finishes,
-        // but clearing here avoids loops.
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lookup'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Teams'),
-            Tab(text: 'Events'),
-          ],
+    return Material(
+      color: Colors.transparent,
+      child: CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(
+          middle: const Text('Lookup'),
+          backgroundColor: CupertinoColors.systemGroupedBackground,
+          // Removed trailing link icon
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildTeamsTab(),
-          const EventsListView(),
-        ],
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 12.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: CupertinoSlidingSegmentedControl<int>(
+                    thumbColor: primaryColor,
+                    backgroundColor: CupertinoColors.tertiarySystemFill,
+                    groupValue: _tabController.index,
+                    children: {
+                      0: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 8),
+                          child: Text('Teams',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: _tabController.index == 0
+                                      ? CupertinoColors.white
+                                      : CupertinoColors.label))),
+                      1: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 8),
+                          child: Text('Events',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: _tabController.index == 1
+                                      ? CupertinoColors.white
+                                      : CupertinoColors.label))),
+                    },
+                    onValueChanged: (int? value) {
+                      if (value != null) {
+                        setState(() {
+                          _tabController.index = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _tabController.index == 0
+                    ? _buildTeamsTab()
+                    : const EventsListView(showNavigationBar: false),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildTeamsTab() {
+    final returnState = ref.watch(returnToEventProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          TextField(
+          if (returnState != null) _buildReturnToEventBanner(returnState),
+          CupertinoSearchTextField(
             controller: _searchController,
-            decoration: InputDecoration(
-              labelText: 'Team Number',
-              hintText: 'e.g. 229V',
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: _search,
-              ),
-              border: const OutlineInputBorder(),
-            ),
+            placeholder: 'Team Number (e.g. 229V)',
             onSubmitted: (_) => _search(),
           ),
           const SizedBox(height: 20),
           if (_isLoading)
-            const CircularProgressIndicator()
+            const CupertinoActivityIndicator()
           else if (_errorMessage != null)
-            Text(_errorMessage!, style: const TextStyle(color: Colors.red))
+            Padding(
+              padding: const EdgeInsets.only(top: 20.0),
+              child: Text(_errorMessage!,
+                  style:
+                      const TextStyle(color: CupertinoColors.destructiveRed)),
+            )
           else if (_team != null)
             _buildTeamResultCard()
           else
-            const Text('Enter a team number to search.',
-                style: TextStyle(color: Colors.grey)),
+            const Padding(
+              padding: EdgeInsets.only(top: 40.0),
+              child: Text('Enter a team number to search.',
+                  style: TextStyle(color: CupertinoColors.systemGrey2)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReturnToEventBanner(dynamic returnState) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemBlue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(CupertinoIcons.arrow_left,
+              color: CupertinoColors.systemBlue),
+          const SizedBox(width: 12),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                ref.read(returnToEventProvider.notifier).state = null;
+                final event = Event(
+                  id: returnState.eventId,
+                  sku: '',
+                  name: returnState.eventName,
+                  startDate: DateTime.now(),
+                  endDate: DateTime.now(),
+                  programCode: 'VIQC',
+                  venue: '',
+                  location: '',
+                );
+                Navigator.of(context).push(CupertinoPageRoute(
+                    builder: (_) => EventDetailScreen(
+                        event: event,
+                        initiallySelectedTeam: returnState.team)));
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Return to Event',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: CupertinoColors.systemBlue)),
+                  Text('Back to ${returnState.eventName} matches',
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+          ),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            child: const Icon(CupertinoIcons.xmark_circle_fill,
+                size: 20, color: CupertinoColors.systemGrey),
+            onPressed: () =>
+                ref.read(returnToEventProvider.notifier).state = null,
+          ),
         ],
       ),
     );
@@ -192,121 +261,217 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
   Widget _buildTeamResultCard() {
     final favoriteService = ref.watch(favoritesServiceProvider);
     final isFavorite = favoriteService.isTeamFavorite(_team!.number);
+    const primaryColor = Color(0xFF49CAEB);
 
-    // Parse Location
-    // Assuming team.location is properly formatted from API, or we parse here.
+    // Stats
+    final worldRank = _worldSkillsData?['rank'];
+    final worldScore = _worldSkillsData?['score'];
+    final trueskill = _team!.statiq?['performance']; // "TrueSkill"
+    final epa = _team!.statiq?['epa'];
+    // Grade label: "MS" or "ES"
+    final gradeLabel = _team!.grade == 'Elementary School'
+        ? 'ES'
+        : _team!.grade == 'Middle School'
+            ? 'MS'
+            : null;
 
-    // Parse Skills
-    // If statiq is available, use it. Otherwise try to parse from _skills list.
-    var worldSkillsRank = _team!.statiq?['world_skills_rank'];
-    var worldSkillsScore = _team!.statiq?['world_skills_score'];
-
-    if (worldSkillsRank == null && _skills != null) {
-      // logic to extract from _skills if needed, or leave as N/A
-      // RoboStem might return 'rank' in the skills response
-      worldSkillsRank = _skills!['rank'];
-      worldSkillsScore = _skills!['score'];
-    }
-
-    final wsRankDisplay = worldSkillsRank?.toString() ?? 'N/A';
-    final wsScoreDisplay = worldSkillsScore?.toString() ?? 'N/A';
-
-    // Awards Count
-    final awardsCount =
-        _awards != null ? (_awards!['awards'] as List).length.toString() : '0';
-
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Header: Link - Number - Star
-            Row(
+    return Column(
+      children: [
+        CupertinoListSection.insetGrouped(
+          header: Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.link),
-                  onPressed: () async {
-                    final url = Uri.parse(
-                        'https://robotevents.com/teams/VIQRC/${_team!.number}');
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url);
-                    }
-                  },
+                Row(
+                  children: [
+                    Text('TEAM ${_team!.number}',
+                        style: const TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold)),
+                    if (gradeLabel != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(gradeLabel,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: primaryColor)),
+                      ),
+                    ],
+                  ],
                 ),
-                Text(
-                  _team!.number,
-                  style: const TextStyle(
-                      fontSize: 32, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: Icon(isFavorite ? Icons.star : Icons.star_border),
-                  onPressed: () async {
-                    if (isFavorite) {
-                      await favoriteService.removeFavoriteTeam(_team!.number);
-                    } else {
-                      await favoriteService.addFavoriteTeam(_team!.number);
-                    }
-                    setState(() {}); // Refresh local UI state
-                  },
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      minSize: 0,
+                      child: const Icon(CupertinoIcons.link,
+                          color: primaryColor, size: 22),
+                      onPressed: () async {
+                        final url = Uri.parse(
+                            'https://robotevents.com/teams/VIQRC/${_team!.number}');
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url);
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 16),
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      minSize: 0,
+                      child: Icon(
+                        isFavorite
+                            ? CupertinoIcons.star_fill
+                            : CupertinoIcons.star,
+                        color: isFavorite
+                            ? CupertinoColors.systemYellow
+                            : primaryColor,
+                        size: 22,
+                      ),
+                      onPressed: () async {
+                        if (isFavorite) {
+                          await favoriteService
+                              .removeFavoriteTeam(_team!.number);
+                        } else {
+                          await favoriteService.addFavoriteTeam(_team!.number);
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
-            const Divider(),
-            // Stats Grid
-            _buildStatRow('Name', _team!.name),
-            _buildStatRow('Organization', _team!.organization ?? 'N/A'),
-            _buildStatRow('Location', _team!.location ?? 'N/A'),
-            const SizedBox(height: 10),
-            _buildStatRow('World Skills Ranking', wsRankDisplay),
-            _buildStatRow('World Skills Score', wsScoreDisplay),
-            _buildStatRow('Awards Count', awardsCount),
-            const SizedBox(height: 10),
-            // Additional Stats
-            if (_team!.statiq != null) ...[
-              _buildStatRow(
-                  'TrueSkill',
-                  (_team!.statiq!['performance'] as num?)?.toStringAsFixed(2) ??
-                      'N/A'),
-              _buildStatRow('EPA',
-                  (_team!.statiq!['epa'] as num?)?.toStringAsFixed(2) ?? 'N/A'),
-            ],
-            const SizedBox(height: 20),
-            // Events Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Navigate to events list
-                  // TODO: Push to Team Events Screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Events List Coming Soon')));
-                },
-                child: const Text('Events'),
-              ),
-            ),
+          ),
+          children: [
+            _buildInfoRow('Name', _team!.name),
+            if (_team!.organization != null)
+              _buildInfoRow('Organization', _team!.organization!),
+            if (_team!.location != null)
+              _buildInfoRow('Location', _team!.location!),
+            _buildInfoRow('World Skills Rank', worldRank?.toString() ?? 'N/A'),
+            _buildInfoRow(
+                'World Skills Score', worldScore?.toString() ?? 'N/A'),
+            _buildInfoRow(
+                'TrueSkill', (trueskill as num?)?.toStringAsFixed(2) ?? 'N/A'),
+            _buildEpaRow((epa as num?)?.toStringAsFixed(2) ?? 'N/A'),
           ],
         ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: CupertinoButton.filled(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.calendar),
+                SizedBox(width: 8),
+                Text('View All Events'),
+              ],
+            ),
+            onPressed: () {
+              Navigator.of(context)
+                  .pushNamed(AppRoutes.teamEvents, arguments: _team);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Custom info row with grey label and white value, allows wrapping.
+  Widget _buildInfoRow(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: CupertinoColors.separator,
+            width: 0.0,
+          ),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 17,
+                  letterSpacing: -0.4,
+                  color: CupertinoColors.secondaryLabel)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                fontSize: 17,
+                color: CupertinoColors.label,
+                letterSpacing: -0.4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildStatRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+  /// EPA row with info icon tooltip.
+  Widget _buildEpaRow(String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: CupertinoColors.separator,
+            width: 0.0,
+          ),
+        ),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          const SizedBox(width: 8), // Spacing
-          Flexible(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-              textAlign: TextAlign.end,
-              overflow: TextOverflow.ellipsis,
+          const Text('EPA per Match',
+              style: TextStyle(
+                  fontSize: 17,
+                  letterSpacing: -0.4,
+                  color: CupertinoColors.secondaryLabel)),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: () {
+              showCupertinoDialog(
+                context: context,
+                barrierDismissible: true,
+                builder: (ctx) => CupertinoAlertDialog(
+                  title: const Text('EPA (Expected Points Added)'),
+                  content: const Text(
+                      "Estimated Points Added per match. A metric to estimate a team's average contribution to the score."),
+                  actions: [
+                    CupertinoDialogAction(
+                      child: const Text('OK'),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              );
+            },
+            child: const Icon(CupertinoIcons.info_circle,
+                size: 16, color: CupertinoColors.systemGrey),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 17,
+              color: CupertinoColors.label,
+              letterSpacing: -0.4,
             ),
           ),
         ],

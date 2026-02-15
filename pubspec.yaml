@@ -24,6 +24,7 @@ dependencies:
   workmanager: ^0.5.0
   uuid: ^3.0.6
   url_launcher: ^6.3.2
+  flutter_pdfview: ^1.4.4
 
 dev_dependencies:
   flutter_test:
@@ -40,6 +41,8 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
+    - assets/pdfs/
 
 dependency_overrides:
   win32: ^5.0.0
+  path_provider_foundation: 2.4.4

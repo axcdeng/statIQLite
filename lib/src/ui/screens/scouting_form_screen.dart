@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roboscout_iq/src/models/scout_entry_model.dart';
@@ -34,49 +35,92 @@ class _ScoutingFormScreenState extends ConsumerState<ScoutingFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scout Match'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveEntry,
-          )
-        ],
+    const primaryColor = Color(0xFF49CAEB);
+
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Scout Match'),
+        backgroundColor: CupertinoColors.systemBackground.withOpacity(0.8),
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: _saveEntry,
+          child: const Text('Save',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: primaryColor)),
+        ),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: [
-            TextFormField(
-              controller: _teamController,
-              decoration: const InputDecoration(labelText: 'Team Number'),
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-            ),
-            const SizedBox(height: 20),
-            const Text('Autonomous',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            _CounterField(
-              label: 'Auto Points',
-              value: _autoPoints,
-              onChanged: (v) => setState(() => _autoPoints = v),
-            ),
-            const Divider(),
-            const Text('Driver Control',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            _CounterField(
-              label: 'Driver Points',
-              value: _driverPoints,
-              onChanged: (v) => setState(() => _driverPoints = v),
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: _notesController,
-              decoration: const InputDecoration(labelText: 'Notes'),
-              maxLines: 3,
-            ),
-          ],
+      child: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8.0, left: 4.0),
+                child: Text('TEAM',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: CupertinoColors.secondaryLabel)),
+              ),
+              CupertinoTextField(
+                controller: _teamController,
+                placeholder: 'e.g. 229V',
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGrey6,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8.0, left: 4.0),
+                child: Text('AUTONOMOUS',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: CupertinoColors.secondaryLabel)),
+              ),
+              _CounterField(
+                label: 'Auto Points',
+                value: _autoPoints,
+                onChanged: (v) => setState(() => _autoPoints = v),
+              ),
+              const SizedBox(height: 24),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8.0, left: 4.0),
+                child: Text('DRIVER CONTROL',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: CupertinoColors.secondaryLabel)),
+              ),
+              _CounterField(
+                label: 'Driver Points',
+                value: _driverPoints,
+                onChanged: (v) => setState(() => _driverPoints = v),
+              ),
+              const SizedBox(height: 24),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8.0, left: 4.0),
+                child: Text('NOTES',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: CupertinoColors.secondaryLabel)),
+              ),
+              CupertinoTextField(
+                controller: _notesController,
+                placeholder: 'Add any observations...',
+                maxLines: 4,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGrey6,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -115,17 +159,34 @@ class _CounterField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(label),
-        const Spacer(),
-        IconButton(
-            icon: const Icon(Icons.remove),
-            onPressed: () => onChanged(value > 0 ? value - 1 : 0)),
-        Text('$value'),
-        IconButton(
-            icon: const Icon(Icons.add), onPressed: () => onChanged(value + 1)),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemGrey6,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          const Spacer(),
+          CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(CupertinoIcons.minus_circle,
+                  color: Color(0xFF49CAEB)),
+              onPressed: () => onChanged(value > 0 ? value - 1 : 0)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text('$value',
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+          CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(CupertinoIcons.plus_circle,
+                  color: Color(0xFF49CAEB)),
+              onPressed: () => onChanged(value + 1)),
+        ],
+      ),
     );
   }
 }

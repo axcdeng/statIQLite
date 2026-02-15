@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roboscout_iq/src/models/match_model.dart';
@@ -10,59 +11,92 @@ class MatchDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    const primaryColor = Color(0xFF49CAEB);
+
     // Calculate prediction (Stub example)
-    // In a real app, you'd fetch ratings for all teams in alliance
-    final prediction = RatingService.predictWinProbability(
-        1500, 1500); // 50% for equal ratings
+    final prediction = RatingService.predictWinProbability(1500, 1500);
     final winChance = (prediction * 100).toStringAsFixed(1);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(match.name)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _AllianceCard(
-              color: Colors.red,
-              teamIds: match.redAllianceTeamIds,
-              score: match.redScore,
-            ),
-            const SizedBox(height: 10),
-            _AllianceCard(
-              color: Colors.blue,
-              teamIds: match.blueAllianceTeamIds,
-              score: match.blueScore,
-            ),
-            const SizedBox(height: 20),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(match.name),
+        backgroundColor: CupertinoColors.systemBackground.withOpacity(0.8),
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              _AllianceCard(
+                color: CupertinoColors.systemRed,
+                teamIds: match.redAllianceTeamIds,
+                score: match.redScore,
+              ),
+              const SizedBox(height: 12),
+              _AllianceCard(
+                color: CupertinoColors.systemBlue,
+                teamIds: match.blueAllianceTeamIds,
+                score: match.blueScore,
+              ),
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemBackground,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: CupertinoColors.separator.withOpacity(0.2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: CupertinoColors.systemGrey.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: Column(
                   children: [
-                    Text('Prediction (Red Win Chance)',
-                        style: Theme.of(context).textTheme.titleMedium),
+                    const Text('Prediction (Red Win Chance)',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: CupertinoColors.secondaryLabel)),
+                    const SizedBox(height: 8),
                     Text('$winChance%',
-                        style: Theme.of(context).textTheme.displayLarge),
+                        style: const TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -1)),
+                    const SizedBox(height: 8),
                     const Text('Based on deterministic rating model (Elo)',
-                        style: TextStyle(fontStyle: FontStyle.italic)),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: CupertinoColors.secondaryLabel)),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pushNamed(
-                  AppRoutes.scoutingForm,
-                  arguments: {'match': match},
-                );
-              },
-              icon: const Icon(Icons.edit_note),
-              label: const Text('Scout This Match'),
-              style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50)),
-            )
-          ],
+              const SizedBox(height: 32),
+              CupertinoButton(
+                color: primaryColor,
+                onPressed: () {
+                  Navigator.of(context).pushNamed(
+                    AppRoutes.scoutingForm,
+                    arguments: {'match': match},
+                  );
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(CupertinoIcons.doc_text_viewfinder),
+                    SizedBox(width: 8),
+                    Text('Scout This Match',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );
@@ -78,25 +112,30 @@ class _AllianceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: color.withOpacity(0.1),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: teamIds
-                  .map((id) => Text('Team ID: $id',
-                      style: const TextStyle(fontWeight: FontWeight.bold)))
-                  .toList(),
-            ),
-            Text(score?.toString() ?? '-',
-                style:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: teamIds
+                .map((id) => Text('Team ID: $id',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                        fontSize: 16)))
+                .toList(),
+          ),
+          Text(score?.toString() ?? '-',
+              style: TextStyle(
+                  fontSize: 32, fontWeight: FontWeight.bold, color: color)),
+        ],
       ),
     );
   }

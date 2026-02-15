@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:roboscout_iq/src/models/event_model.dart';
 import 'package:roboscout_iq/src/models/team_model.dart';
 import 'package:roboscout_iq/src/services/api_client.dart';
 import 'package:roboscout_iq/src/services/local_db_service.dart';
@@ -13,7 +14,14 @@ class TeamsRepository {
   Future<void> fetchTeams(int eventId) async {
     try {
       final teams = await _apiClient.getTeams(eventId);
-      await _localDb.teamsBox.putAll({for (var t in teams) t.id: t});
+      // Store with composite key: "eventId_teamId"
+      // Also update the team object to know which event it belongs to contextually
+      final teamsMap = <dynamic, Team>{};
+      for (var t in teams) {
+        final teamWithEvent = t.copyWith(eventId: eventId);
+        teamsMap['${eventId}_${t.id}'] = teamWithEvent;
+      }
+      await _localDb.teamsBox.putAll(teamsMap);
     } catch (e) {
       rethrow;
     }
@@ -24,13 +32,33 @@ class TeamsRepository {
   }
 
   List<Team> getTeamsForEvent(int eventId) {
+    // Filter by eventId property since we now store it correctly
     return _localDb.teamsBox.values.where((t) => t.eventId == eventId).toList();
   }
 
+  /// Instant local lookup — checks Hive cache for any previously loaded team.
+  Team? findLocalTeamByNumber(String number) {
+    try {
+      return _localDb.teamsBox.values.firstWhere((t) => t.number == number);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Fast API lookup via RobotEvents (skips the slower RoboStem proxy).
+  Future<Team?> getTeamByNumber(String number) async {
+    return await _apiClient.getTeamByNumber(number);
+  }
+
   Future<List<Team>> searchTeams(String query) async {
-    // If query is numeric, assume team number search
-    // TODO: support other search types if needed
-    return await _apiClient.searchTeams(number: query, limit: 20);
+    // Querying by team number
+    return await _apiClient.searchTeams(number: query, limit: 1);
+  }
+
+  Future<Map<String, dynamic>?> getTeamSkillRank(String teamNumber,
+      {String? gradeLevel}) async {
+    return await _apiClient.getTeamSkillRank(teamNumber,
+        gradeLevel: gradeLevel);
   }
 
   Future<List<Map<String, dynamic>>> getTeamSkills(int teamId) async {
@@ -41,7 +69,7 @@ class TeamsRepository {
     return await _apiClient.getTeamAwards(teamId);
   }
 
-  Future<List<dynamic>> getTeamEvents(int teamId) async {
-    return await _apiClient.getTeamEvents(teamId);
+  Future<List<Event>> getTeamEvents(int teamId, {int? seasonId}) async {
+    return await _apiClient.getTeamEvents(teamId, seasonId: seasonId);
   }
 }

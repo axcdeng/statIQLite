@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
@@ -7,45 +8,83 @@ class ExportsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Export Data')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.import_export, size: 80, color: Colors.indigo),
-            const SizedBox(height: 20),
-            const Text(
-              'Export all scouting data to CSV',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18),
+    const primaryColor = Color(0xFF49CAEB);
+
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Export Data'),
+        backgroundColor: CupertinoColors.systemBackground.withOpacity(0.8),
+      ),
+      child: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(CupertinoIcons.share_up,
+                    size: 80, color: primaryColor),
+                const SizedBox(height: 24),
+                const Text(
+                  'Export scouting data to CSV',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Share your scouting entries with other teams via CSV or open in Spreadsheet applications.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 15, color: CupertinoColors.secondaryLabel),
+                ),
+                const SizedBox(height: 48),
+                CupertinoButton(
+                  color: primaryColor,
+                  borderRadius: BorderRadius.circular(12),
+                  onPressed: () async {
+                    final exportService = ref.read(exportServiceProvider);
+                    final scoutingRepo = ref.read(scoutingRepositoryProvider);
+                    final entries =
+                        scoutingRepo.watchEntries().value.values.toList();
+                    await exportService.shareScoutEntriesCsv(entries);
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(CupertinoIcons.share),
+                      SizedBox(width: 8),
+                      Text('Export to CSV',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                CupertinoButton(
+                  child: const Text('Export to Excel (XLSX)',
+                      style: TextStyle(color: primaryColor)),
+                  onPressed: () {
+                    showCupertinoDialog(
+                      context: context,
+                      builder: (context) => CupertinoAlertDialog(
+                        title: const Text('Coming Soon'),
+                        content: const Text(
+                            'XLSX export is currently in development.'),
+                        actions: [
+                          CupertinoDialogAction(
+                            child: const Text('OK'),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () async {
-                final exportService = ref.read(exportServiceProvider);
-                final scoutingRepo = ref.read(scoutingRepositoryProvider);
-                // Fetch all entries for export
-                // This is a simplification; realistically you'd filter or page
-                final entries = scoutingRepo.watchEntries().value.values.toList();
-                await exportService.shareScoutEntriesCsv(entries);
-              },
-              icon: const Icon(Icons.share),
-              label: const Text('Export to CSV'),
-            ),
-            const SizedBox(height: 10),
-            // XLSX Stub
-            OutlinedButton.icon(
-              onPressed: () {
-                // TODO: Implement XLSX using excel package
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('XLSX export coming soon (requires syncfusion or excel package logic)')),
-                );
-              },
-              icon: const Icon(Icons.table_chart),
-              label: const Text('Export to Excel (XLSX)'),
-            ),
-          ],
+          ),
         ),
       ),
     );

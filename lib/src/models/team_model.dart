@@ -30,6 +30,8 @@ class Team {
   final double? ccwm;
   @HiveField(11)
   final Map<String, dynamic>? statiq;
+  @HiveField(12)
+  final String? grade;
 
   Team({
     required this.id,
@@ -44,6 +46,7 @@ class Team {
     this.trueskill,
     this.ccwm,
     this.statiq,
+    this.grade,
   });
 
   factory Team.fromJson(Map<String, dynamic> json) {
@@ -84,6 +87,39 @@ class Team {
       location: locationStr,
       trueskill: perf?.toDouble(),
       statiq: statiq,
+      grade: json['grade'] as String?,
+    );
+  }
+
+  Team copyWith({
+    int? id,
+    String? number,
+    String? name,
+    String? school,
+    String? robotName,
+    int? worldRank,
+    int? eventId,
+    String? organization,
+    String? location,
+    double? trueskill,
+    double? ccwm,
+    Map<String, dynamic>? statiq,
+    String? grade,
+  }) {
+    return Team(
+      id: id ?? this.id,
+      number: number ?? this.number,
+      name: name ?? this.name,
+      school: school ?? this.school,
+      robotName: robotName ?? this.robotName,
+      worldRank: worldRank ?? this.worldRank,
+      eventId: eventId ?? this.eventId,
+      organization: organization ?? this.organization,
+      location: location ?? this.location,
+      trueskill: trueskill ?? this.trueskill,
+      ccwm: ccwm ?? this.ccwm,
+      statiq: statiq ?? this.statiq,
+      grade: grade ?? this.grade,
     );
   }
 
