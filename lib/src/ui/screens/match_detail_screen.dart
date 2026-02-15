@@ -11,7 +11,7 @@ class MatchDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     // Calculate prediction (Stub example)
     final prediction = RatingService.predictWinProbability(1500, 1500);
@@ -20,7 +20,9 @@ class MatchDetailScreen extends ConsumerWidget {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: Text(match.name),
-        backgroundColor: CupertinoColors.systemBackground.withOpacity(0.8),
+        backgroundColor: CupertinoColors.systemBackground
+            .resolveFrom(context)
+            .withValues(alpha: 0.8),
       ),
       child: SafeArea(
         child: SingleChildScrollView(
@@ -43,7 +45,8 @@ class MatchDetailScreen extends ConsumerWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20.0),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemBackground,
+                  color: CupertinoColors.secondarySystemGroupedBackground
+                      .resolveFrom(context),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                       color: CupertinoColors.separator.withOpacity(0.2)),
@@ -87,7 +90,7 @@ class MatchDetailScreen extends ConsumerWidget {
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Icon(CupertinoIcons.doc_text_viewfinder),
                     SizedBox(width: 8),
                     Text('Scout This Match',

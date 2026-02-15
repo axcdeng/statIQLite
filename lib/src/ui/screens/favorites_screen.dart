@@ -41,7 +41,7 @@ class FavoritesScreen extends ConsumerStatefulWidget {
 }
 
 class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
-  static const _primaryColor = Color(0xFF49CAEB);
+  Color get _primaryColor => Theme.of(context).colorScheme.primary;
 
   /// Expansion state per team number — starts expanded for teams with events.
   final Map<String, bool> _expanded = {};
@@ -232,22 +232,24 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     return Material(
       color: Colors.transparent,
       child: CupertinoPageScaffold(
+        backgroundColor:
+            CupertinoColors.systemGroupedBackground.resolveFrom(context),
         navigationBar: CupertinoNavigationBar(
           middle: const Text('Favorites'),
-          backgroundColor: CupertinoColors.systemGroupedBackground,
         ),
         child: SafeArea(
           child: ListView(
             children: [
               // TEAMS SECTION
               if (favTeams.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(32, 20, 16, 8),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(32, 20, 16, 8),
                   child: Text('TEAMS',
                       style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: CupertinoColors.secondaryLabel,
+                          color: CupertinoColors.secondaryLabel
+                              .resolveFrom(context),
                           letterSpacing: 0.5)),
                 ),
                 ...favTeams.map((teamNum) => _buildTeamCard(teamNum)),
@@ -260,12 +262,18 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                   margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   children: favEvents.map((event) {
                     return CupertinoListTile.notched(
-                      leading: const Icon(CupertinoIcons.calendar,
-                          color: _primaryColor),
+                      leading:
+                          Icon(CupertinoIcons.calendar, color: _primaryColor),
                       title: Text(event.name,
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  CupertinoColors.label.resolveFrom(context))),
                       subtitle: Text(event.sku ?? '',
-                          style: const TextStyle(fontSize: 13)),
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(context))),
                       trailing: const CupertinoListTileChevron(),
                       onTap: () {
                         Navigator.of(context)
@@ -306,7 +314,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       decoration: BoxDecoration(
-        color: CupertinoColors.secondarySystemGroupedBackground,
+        color: CupertinoColors.secondarySystemGroupedBackground
+            .resolveFrom(context),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -323,15 +332,15 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
-                  const Icon(CupertinoIcons.person_2_fill,
+                  Icon(CupertinoIcons.person_2_fill,
                       color: _primaryColor, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(teamNumber,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 17,
-                            color: CupertinoColors.label)),
+                            color: CupertinoColors.label.resolveFrom(context))),
                   ),
                   if (isLoading)
                     const CupertinoActivityIndicator(radius: 8)
@@ -373,7 +382,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     return Container(
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: CupertinoColors.separator.withOpacity(0.3)),
+          top:
+              BorderSide(color: CupertinoColors.separator.resolveFrom(context)),
         ),
       ),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -402,10 +412,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 Expanded(
                   child: Text(
                     stats.event.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: CupertinoColors.label,
+                        color: CupertinoColors.label.resolveFrom(context),
                         letterSpacing: -0.2),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -431,7 +441,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(CupertinoIcons.flag_fill,
+                  Icon(CupertinoIcons.flag_fill,
                       size: 14, color: _primaryColor),
                   const SizedBox(width: 8),
                   Text('Next: ',
@@ -441,17 +451,17 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                               CupertinoColors.systemGrey.resolveFrom(context),
                           fontWeight: FontWeight.w500)),
                   Text(matchLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: _primaryColor)),
                   const Spacer(),
                   if (timeStr != null)
                     Text(timeStr,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: CupertinoColors.label)),
+                            color: CupertinoColors.label.resolveFrom(context))),
                 ],
               ),
             ),
@@ -534,7 +544,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: CupertinoColors.tertiarySystemGroupedBackground,
+        color: CupertinoColors.tertiarySystemGroupedBackground
+            .resolveFrom(context),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -554,25 +565,27 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 11,
-                        color: CupertinoColors.secondaryLabel,
+                        color:
+                            CupertinoColors.secondaryLabel.resolveFrom(context),
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 1),
                 Row(
                   children: [
                     Text(value,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: CupertinoColors.label,
+                            color: CupertinoColors.label.resolveFrom(context),
                             letterSpacing: -0.5)),
                     if (subtitle != null) ...[
                       const SizedBox(width: 6),
                       Text(subtitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 11,
-                              color: CupertinoColors.secondaryLabel)),
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(context))),
                     ],
                   ],
                 ),

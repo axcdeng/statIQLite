@@ -76,19 +76,20 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
   @override
   Widget build(BuildContext context) {
     final currentList = _gradeLevel == 'Middle School' ? _msSkills : _esSkills;
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Material(
       color: Colors.transparent,
       child: CupertinoPageScaffold(
+        backgroundColor:
+            CupertinoColors.systemGroupedBackground.resolveFrom(context),
         navigationBar: CupertinoNavigationBar(
           middle: const Text('World Skills'),
           trailing: CupertinoButton(
             padding: EdgeInsets.zero,
-            child: const Icon(CupertinoIcons.refresh, color: primaryColor),
+            child: Icon(CupertinoIcons.refresh, color: primaryColor),
             onPressed: _fetchSkills,
           ),
-          backgroundColor: CupertinoColors.black.withOpacity(0.9),
         ),
         child: SafeArea(
           child: Column(
@@ -110,8 +111,9 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                             style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: _gradeLevel == 'Middle School'
-                                    ? CupertinoColors.white
-                                    : CupertinoColors.label)),
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : CupertinoColors.secondaryLabel
+                                        .resolveFrom(context))),
                       ),
                       'Elementary School': Padding(
                         padding: const EdgeInsets.symmetric(
@@ -120,8 +122,9 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                             style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: _gradeLevel == 'Elementary School'
-                                    ? CupertinoColors.white
-                                    : CupertinoColors.label)),
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : CupertinoColors.secondaryLabel
+                                        .resolveFrom(context))),
                       ),
                     },
                     onValueChanged: (String? value) {
@@ -164,43 +167,48 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
     final score = item['score'];
     final prog = item['programming'];
     final driver = item['driver'];
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return CupertinoListTile.notched(
       leading: Container(
         width: 32,
         height: 32,
         alignment: Alignment.center,
-        decoration: const BoxDecoration(
-          color: CupertinoColors.systemGrey6,
+        decoration: BoxDecoration(
+          color: CupertinoColors.secondarySystemGroupedBackground
+              .resolveFrom(context),
           shape: BoxShape.circle,
         ),
         child: Text('$rank',
-            style: const TextStyle(
+            style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
-                color: CupertinoColors.label)),
+                color: CupertinoColors.label.resolveFrom(context))),
       ),
       title: Row(
         children: [
           Text(number,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 17,
+                  color: CupertinoColors.label.resolveFrom(context))),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               name,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
-                color: CupertinoColors.white,
+                color: CupertinoColors.label.resolveFrom(context),
               ),
             ),
           ),
         ],
       ),
       subtitle: Text('Prog: $prog    Driver: $driver',
-          style: const TextStyle(fontSize: 12)),
+          style: TextStyle(
+              fontSize: 12,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context))),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
@@ -209,7 +217,7 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
         ),
         child: Text(
           '$score',
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w800,
             color: primaryColor,
             fontSize: 18,

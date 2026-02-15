@@ -86,12 +86,11 @@ class _TeamEventsScreenState extends ConsumerState<TeamEventsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: Text('${widget.team.number} Events'),
-        backgroundColor: CupertinoColors.black.withOpacity(0.9),
       ),
       child: Material(
         color: Colors.transparent,
@@ -101,12 +100,18 @@ class _TeamEventsScreenState extends ConsumerState<TeamEventsScreen> {
               : _errorMessage != null
                   ? Center(
                       child: Text('Error: $_errorMessage',
-                          style: const TextStyle(
-                              color: CupertinoColors.destructiveRed)))
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error)))
                   : _displayedEvents.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text('No events found for this team.',
-                              style: TextStyle(color: Color(0xFF8E8E93))))
+                              style: TextStyle(
+                                  color: CupertinoTheme.of(context)
+                                          .textTheme
+                                          .textStyle
+                                          .color
+                                          ?.withOpacity(0.6) ??
+                                      CupertinoColors.systemGrey)))
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           itemCount: _displayedEvents.length +
@@ -120,14 +125,14 @@ class _TeamEventsScreenState extends ConsumerState<TeamEventsScreen> {
                                 child: CupertinoButton(
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 10),
-                                  color: const Color(0xFF2C2C2E),
+                                  color: CupertinoColors.tertiarySystemFill,
                                   borderRadius: BorderRadius.circular(10),
                                   onPressed: _isLoadingPrevious
                                       ? null
                                       : _fetchAllEvents,
                                   child: _isLoadingPrevious
                                       ? const CupertinoActivityIndicator()
-                                      : const Row(
+                                      : Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
                                           children: [
@@ -176,12 +181,12 @@ class _EventExpansionTileState extends ConsumerState<_EventExpansionTile> {
   @override
   Widget build(BuildContext context) {
     final dateStr = DateFormat('MMM d, yyyy').format(widget.event.startDate);
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
+        color: CupertinoColors.secondarySystemGroupedBackground,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -202,7 +207,7 @@ class _EventExpansionTileState extends ConsumerState<_EventExpansionTile> {
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 15,
-                                color: CupertinoColors.white)),
+                                color: CupertinoColors.label)),
                         const SizedBox(height: 4),
                         Text(dateStr,
                             style: const TextStyle(
@@ -243,7 +248,7 @@ class _EventDetails extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final matchesRepo = ref.watch(matchesRepositoryProvider);
     final teamsRepo = ref.watch(teamsRepositoryProvider);
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -261,7 +266,7 @@ class _EventDetails extends ConsumerWidget {
                 Navigator.of(context).push(CupertinoPageRoute(
                     builder: (_) => EventDetailScreen(event: event)));
               },
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(CupertinoIcons.arrow_right_circle,
@@ -285,7 +290,7 @@ class _EventDetails extends ConsumerWidget {
                 style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF8E8E93),
+                    color: CupertinoColors.systemGrey,
                     letterSpacing: 0.5)),
           ),
           FutureBuilder<List<MatchModel>>(
@@ -310,7 +315,8 @@ class _EventDetails extends ConsumerWidget {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12.0),
                   child: Text('No matches found.',
-                      style: TextStyle(color: Color(0xFF8E8E93), fontSize: 13)),
+                      style: TextStyle(
+                          color: CupertinoColors.systemGrey, fontSize: 13)),
                 );
               }
 
@@ -345,21 +351,21 @@ class _EventDetails extends ConsumerWidget {
                         style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF8E8E93),
+                            color: CupertinoColors.systemGrey,
                             letterSpacing: 0.5)),
                   ),
                   ...eventAwards.map((a) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(
                           children: [
-                            const Icon(CupertinoIcons.gift_fill,
+                            Icon(CupertinoIcons.gift_fill,
                                 color: primaryColor, size: 16),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(a['title'] ?? 'Award',
                                   style: const TextStyle(
                                       fontSize: 14,
-                                      color: CupertinoColors.white)),
+                                      color: CupertinoColors.label)),
                             ),
                           ],
                         ),

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:roboscout_iq/src/ui/screens/resources/pdf_viewer_screen.dart';
@@ -694,7 +695,7 @@ class _GameManualTabState extends State<GameManualTab> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
     final filtered = _filteredRules;
 
     return Column(
@@ -741,10 +742,10 @@ class _GameManualTabState extends State<GameManualTab> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(CupertinoIcons.doc_text,
+                        Icon(CupertinoIcons.doc_text,
                             size: 14, color: primaryColor),
                         const SizedBox(width: 4),
-                        const Text(
+                        Text(
                           'View PDF',
                           style: TextStyle(
                             color: primaryColor,
@@ -804,7 +805,7 @@ class _GameManualTabState extends State<GameManualTab> {
                             ),
                             child: Text(
                               '${kSectionNames[rule.section]} (${rule.section})',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: primaryColor,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 16,
@@ -884,7 +885,9 @@ class _GameManualTabState extends State<GameManualTab> {
           child: Text(
             label,
             style: TextStyle(
-              color: isActive ? CupertinoColors.white : CupertinoColors.label,
+              color: isActive
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : CupertinoColors.label,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),

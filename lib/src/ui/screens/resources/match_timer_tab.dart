@@ -99,9 +99,9 @@ class _MatchTimerTabState extends State<MatchTimerTab>
 
   Color get _timerColor {
     final fraction = _remainingSeconds / _totalSeconds;
-    if (fraction > 0.5) return const Color(0xFF49CAEB);
-    if (fraction > 0.17) return const Color(0xFFFFA726);
-    return const Color(0xFFEF5350);
+    if (fraction > 0.5) return Theme.of(context).colorScheme.primary;
+    if (fraction > 0.17) return CupertinoColors.activeOrange;
+    return CupertinoColors.destructiveRed;
   }
 
   String get _timeString {
@@ -112,7 +112,7 @@ class _MatchTimerTabState extends State<MatchTimerTab>
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return OrientationBuilder(
       builder: (context, orientation) {
@@ -120,7 +120,7 @@ class _MatchTimerTabState extends State<MatchTimerTab>
 
         if (isLandscape || _isFullscreen) {
           return Scaffold(
-            backgroundColor: CupertinoColors.black,
+            backgroundColor: CupertinoColors.systemBackground,
             body: SafeArea(
               child: Row(
                 children: [
@@ -312,10 +312,10 @@ class _MatchTimerTabState extends State<MatchTimerTab>
         height: 80,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _isRunning ? const Color(0xFFFFA726) : primaryColor,
+          color: _isRunning ? CupertinoColors.activeOrange : primaryColor,
           boxShadow: [
             BoxShadow(
-              color: (_isRunning ? const Color(0xFFFFA726) : primaryColor)
+              color: (_isRunning ? CupertinoColors.activeOrange : primaryColor)
                   .withAlpha((0.4 * 255)
                       .round()), // Changed .withOpacity(0.4) to .withAlpha
               blurRadius: 16,

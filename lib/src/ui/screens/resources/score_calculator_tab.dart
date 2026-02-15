@@ -91,7 +91,7 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     // Scoring items data
     final items = [
@@ -114,7 +114,8 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
     ];
 
     return Scaffold(
-      backgroundColor: CupertinoColors.systemGroupedBackground,
+      backgroundColor:
+          CupertinoColors.systemGroupedBackground.resolveFrom(context),
       body: Column(
         children: [
           const SizedBox(height: 12),
@@ -128,8 +129,8 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
                 CupertinoButton(
                   padding: EdgeInsets.zero,
                   onPressed: _showHistory,
-                  child: const Icon(CupertinoIcons.clock,
-                      color: primaryColor, size: 26),
+                  child:
+                      Icon(CupertinoIcons.clock, color: primaryColor, size: 26),
                 ),
 
                 // Total Score
@@ -146,7 +147,7 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
                     ),
                     Text(
                       '$_totalScore',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: primaryColor,
                         fontWeight: FontWeight.w900,
                         fontSize: 48,
@@ -163,7 +164,7 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
                     CupertinoButton(
                       padding: EdgeInsets.zero,
                       onPressed: _saveScore,
-                      child: const Icon(CupertinoIcons.floppy_disk,
+                      child: Icon(CupertinoIcons.floppy_disk,
                           color: primaryColor, size: 26),
                     ),
                     const SizedBox(width: 16),
@@ -292,14 +293,14 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
                     shape: BoxShape.circle,
                     color: isMax
                         ? CupertinoColors.tertiarySystemFill
-                        : const Color(0xFF49CAEB), // Active color
+                        : Theme.of(context).colorScheme.primary, // Active color
                   ),
                   child: Icon(
                     CupertinoIcons.add,
                     size: 18,
                     color: isMax
                         ? CupertinoColors.quaternaryLabel
-                        : CupertinoColors.black,
+                        : Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
               ),
@@ -331,10 +332,12 @@ class ScoreHistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: CupertinoColors.systemGroupedBackground,
-      appBar: const CupertinoNavigationBar(
-        backgroundColor: CupertinoColors.systemGroupedBackground,
-        middle: Text('Score History'),
-        leading: CupertinoNavigationBarBackButton(color: Color(0xFF49CAEB)),
+      appBar: CupertinoNavigationBar(
+        backgroundColor:
+            CupertinoColors.systemGroupedBackground.resolveFrom(context),
+        middle: const Text('Score History'),
+        leading: CupertinoNavigationBarBackButton(
+            color: Theme.of(context).colorScheme.primary),
       ),
       body: ValueListenableBuilder<Box<ScoreEntry>>(
         valueListenable: LocalDbService().scoreEntriesBox.listenable(),

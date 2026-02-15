@@ -6,8 +6,6 @@ import 'package:roboscout_iq/src/ui/screens/resources/full_screen_image_viewer.d
 class FieldSetupTab extends StatelessWidget {
   const FieldSetupTab({super.key});
 
-  static const primaryColor = Color(0xFF49CAEB);
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -16,20 +14,20 @@ class FieldSetupTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          const Text(
+          Text(
             'Field Setup Diagrams',
             style: TextStyle(
-              color: CupertinoColors.label,
+              color: CupertinoColors.label.resolveFrom(context),
               fontWeight: FontWeight.w800,
               fontSize: 20,
               letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'VEX IQ Mix & Match 2025-2026. Pinch to zoom on any diagram.',
             style: TextStyle(
-              color: CupertinoColors.secondaryLabel,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
               fontSize: 13,
             ),
           ),
@@ -67,9 +65,11 @@ class _FieldDiagramCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: CupertinoColors.secondarySystemGroupedBackground,
+        color: CupertinoColors.secondarySystemGroupedBackground
+            .resolveFrom(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: CupertinoColors.separator, width: 0.5),
+        border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context), width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,8 +79,8 @@ class _FieldDiagramCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
             child: Text(
               title,
-              style: const TextStyle(
-                color: CupertinoColors.label,
+              style: TextStyle(
+                color: CupertinoColors.label.resolveFrom(context),
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
               ),
@@ -109,7 +109,8 @@ class _FieldDiagramCard extends StatelessWidget {
                     width: double.infinity,
                     constraints:
                         const BoxConstraints(minHeight: 200, maxHeight: 400),
-                    color: const Color(0xFF0A0A0A),
+                    color: CupertinoColors
+                        .black, // Diagrams look better on solid black regardless of mode
                     child: Image.asset(
                       imagePath,
                       fit: BoxFit.contain,

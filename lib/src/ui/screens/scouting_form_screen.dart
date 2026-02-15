@@ -35,16 +35,18 @@ class _ScoutingFormScreenState extends ConsumerState<ScoutingFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: const Text('Scout Match'),
-        backgroundColor: CupertinoColors.systemBackground.withOpacity(0.8),
+        backgroundColor: CupertinoColors.systemBackground
+            .resolveFrom(context)
+            .withValues(alpha: 0.8),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _saveEntry,
-          child: const Text('Save',
+          child: Text('Save',
               style:
                   TextStyle(fontWeight: FontWeight.bold, color: primaryColor)),
         ),
@@ -68,7 +70,8 @@ class _ScoutingFormScreenState extends ConsumerState<ScoutingFormScreen> {
                 placeholder: 'e.g. 229V',
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
+                  color: CupertinoColors.secondarySystemGroupedBackground
+                      .resolveFrom(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
@@ -115,7 +118,8 @@ class _ScoutingFormScreenState extends ConsumerState<ScoutingFormScreen> {
                 maxLines: 4,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
+                  color: CupertinoColors.secondarySystemGroupedBackground
+                      .resolveFrom(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
@@ -162,7 +166,8 @@ class _CounterField extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
+        color: CupertinoColors.secondarySystemGroupedBackground
+            .resolveFrom(context),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -171,8 +176,8 @@ class _CounterField extends StatelessWidget {
           const Spacer(),
           CupertinoButton(
               padding: EdgeInsets.zero,
-              child: const Icon(CupertinoIcons.minus_circle,
-                  color: Color(0xFF49CAEB)),
+              child: Icon(CupertinoIcons.minus_circle,
+                  color: Theme.of(context).colorScheme.primary),
               onPressed: () => onChanged(value > 0 ? value - 1 : 0)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -182,8 +187,8 @@ class _CounterField extends StatelessWidget {
           ),
           CupertinoButton(
               padding: EdgeInsets.zero,
-              child: const Icon(CupertinoIcons.plus_circle,
-                  color: Color(0xFF49CAEB)),
+              child: Icon(CupertinoIcons.plus_circle,
+                  color: Theme.of(context).colorScheme.primary),
               onPressed: () => onChanged(value + 1)),
         ],
       ),

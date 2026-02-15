@@ -43,17 +43,17 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
     final isFavorite = widget.event.sku != null &&
         ref.watch(favoritesServiceProvider).isEventFavorite(widget.event.sku!);
 
     return CupertinoPageScaffold(
+      backgroundColor: CupertinoColors.systemGroupedBackground,
       navigationBar: CupertinoNavigationBar(
         transitionBetweenRoutes: false,
         middle: Text(widget.event.name,
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             overflow: TextOverflow.ellipsis),
-        backgroundColor: CupertinoColors.black.withOpacity(0.9),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -78,8 +78,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
               ),
             CupertinoButton(
               padding: EdgeInsets.zero,
-              child: const Icon(CupertinoIcons.search,
-                  color: primaryColor, size: 20),
+              child: Icon(CupertinoIcons.search, color: primaryColor, size: 20),
               onPressed: () {
                 ref.read(bottomNavIndexProvider.notifier).state = 2;
                 Navigator.of(context).popUntil((route) => route.isFirst);
@@ -111,8 +110,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 0
-                                      ? CupertinoColors.white
-                                      : CupertinoColors.label))),
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : CupertinoColors.secondaryLabel))),
                       1: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 4, vertical: 8),
@@ -121,8 +120,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 1
-                                      ? CupertinoColors.white
-                                      : CupertinoColors.label))),
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : CupertinoColors.secondaryLabel))),
                       2: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 4, vertical: 8),
@@ -131,8 +130,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 2
-                                      ? CupertinoColors.white
-                                      : CupertinoColors.label))),
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : CupertinoColors.secondaryLabel))),
                       3: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 4, vertical: 8),
@@ -141,8 +140,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 3
-                                      ? CupertinoColors.white
-                                      : CupertinoColors.label))),
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : CupertinoColors.secondaryLabel))),
                       4: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 4, vertical: 8),
@@ -151,8 +150,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 4
-                                      ? CupertinoColors.white
-                                      : CupertinoColors.label))),
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : CupertinoColors.secondaryLabel))),
                     },
                     onValueChanged: (int? value) {
                       if (value != null) {
@@ -193,7 +192,7 @@ class _TeamsList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teamsRepo = ref.watch(teamsRepositoryProvider);
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return ValueListenableBuilder<Box<Team>>(
       valueListenable: teamsRepo.watchTeams(),
@@ -223,8 +222,8 @@ class _TeamsList extends ConsumerWidget {
               margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               children: teams.map((team) {
                 return CupertinoListTile.notched(
-                  leading: const Icon(CupertinoIcons.person_2_fill,
-                      color: primaryColor),
+                  leading:
+                      Icon(CupertinoIcons.person_2_fill, color: primaryColor),
                   title: Text(team.number,
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(team.name,
@@ -467,7 +466,7 @@ class _RankingsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: ref.read(eventsRepositoryProvider).getEventRankings(event.id),
       builder: (context, snapshot) {
@@ -516,7 +515,7 @@ class _RankingsList extends ConsumerWidget {
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 17)),
                   additionalInfo: Text('${avgScore ?? '-'} pts',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontWeight: FontWeight.bold, color: primaryColor)),
                   trailing: const CupertinoListTileChevron(),
                   onTap: () {
@@ -548,7 +547,7 @@ class _SkillsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: ref.read(eventsRepositoryProvider).getEventSkills(event.id),
       builder: (context, snapshot) {
@@ -613,8 +612,9 @@ class _SkillsList extends ConsumerWidget {
                 width: 32,
                 height: 32,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
+                decoration: BoxDecoration(
+                  color: CupertinoColors.secondarySystemGroupedBackground
+                      .resolveFrom(context),
                   shape: BoxShape.circle,
                 ),
                 child: Text('${item.rank}',
@@ -633,12 +633,12 @@ class _SkillsList extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.15),
+                  color: primaryColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   '${item.combinedScore}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: primaryColor,
                     fontSize: 18,
@@ -681,7 +681,7 @@ class _AwardsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: ref.read(eventsRepositoryProvider).getEventAwards(event.id),
       builder: (context, snapshot) {
@@ -711,7 +711,8 @@ class _AwardsList extends ConsumerWidget {
             displayItems.add(CupertinoListTile.notched(
               title: Text(title,
                   style: const TextStyle(fontWeight: FontWeight.w600)),
-              leading: const Icon(CupertinoIcons.gift, color: primaryColor),
+              leading: const Icon(CupertinoIcons.gift,
+                  color: CupertinoColors.systemGrey),
             ));
           } else {
             for (final w in teamWinners) {
@@ -720,10 +721,9 @@ class _AwardsList extends ConsumerWidget {
               displayItems.add(CupertinoListTile.notched(
                 title: Text(title,
                     style: const TextStyle(fontWeight: FontWeight.w600)),
-                leading:
-                    const Icon(CupertinoIcons.gift_fill, color: primaryColor),
+                leading: Icon(CupertinoIcons.gift_fill, color: primaryColor),
                 additionalInfo: Text(num,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: primaryColor,
                         fontSize: 16)),

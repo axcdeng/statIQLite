@@ -95,7 +95,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     ref.listen(teamSearchQueryProvider, (previous, next) {
       if (next != null && next.isNotEmpty && next != _searchController.text) {
@@ -132,8 +132,9 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                               style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 0
-                                      ? CupertinoColors.white
-                                      : CupertinoColors.label))),
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : CupertinoColors.secondaryLabel
+                                          .resolveFrom(context)))),
                       1: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 20, vertical: 8),
@@ -141,8 +142,9 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                               style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 1
-                                      ? CupertinoColors.white
-                                      : CupertinoColors.label))),
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : CupertinoColors.secondaryLabel
+                                          .resolveFrom(context)))),
                     },
                     onValueChanged: (int? value) {
                       if (value != null) {
@@ -261,7 +263,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
   Widget _buildTeamResultCard() {
     final favoriteService = ref.watch(favoritesServiceProvider);
     final isFavorite = favoriteService.isTeamFavorite(_team!.number);
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     // Stats
     final worldRank = _worldSkillsData?['rank'];
@@ -298,7 +300,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(gradeLabel,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: primaryColor)),
@@ -312,7 +314,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                     CupertinoButton(
                       padding: EdgeInsets.zero,
                       minSize: 0,
-                      child: const Icon(CupertinoIcons.link,
+                      child: Icon(CupertinoIcons.link,
                           color: primaryColor, size: 22),
                       onPressed: () async {
                         final url = Uri.parse(
@@ -402,18 +404,18 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 17,
                   letterSpacing: -0.4,
-                  color: CupertinoColors.secondaryLabel)),
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context))),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.end,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
-                color: CupertinoColors.label,
+                color: CupertinoColors.label.resolveFrom(context),
                 letterSpacing: -0.4,
               ),
             ),
@@ -438,11 +440,11 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('EPA per Match',
+          Text('EPA per Match',
               style: TextStyle(
                   fontSize: 17,
                   letterSpacing: -0.4,
-                  color: CupertinoColors.secondaryLabel)),
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context))),
           const SizedBox(width: 4),
           GestureDetector(
             onTap: () {

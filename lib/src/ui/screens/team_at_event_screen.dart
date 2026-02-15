@@ -21,14 +21,14 @@ class TeamAtEventScreen extends ConsumerWidget {
     final isFavorite = favoritesService.isTeamFavorite(team.number);
     final matchesRepo = ref.watch(matchesRepositoryProvider);
     final eventId = event.id; // Convenience
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Material(
       color: Colors.transparent,
       child: CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
           middle: Text('Team ${team.number}'),
-          backgroundColor: CupertinoColors.black.withOpacity(0.9),
+          backgroundColor: CupertinoColors.systemGroupedBackground,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -49,7 +49,7 @@ class TeamAtEventScreen extends ConsumerWidget {
               ),
               CupertinoButton(
                 padding: EdgeInsets.zero,
-                child: const Icon(CupertinoIcons.arrow_up_right_square,
+                child: Icon(CupertinoIcons.arrow_up_right_square,
                     color: primaryColor),
                 onPressed: () {
                   ref.read(teamSearchQueryProvider.notifier).state =

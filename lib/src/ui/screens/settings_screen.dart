@@ -42,13 +42,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final settingsNotifier = ref.read(settingsProvider.notifier);
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.systemGroupedBackground,
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Settings'),
-        backgroundColor: CupertinoColors.systemGroupedBackground,
+      backgroundColor:
+          CupertinoColors.systemGroupedBackground.resolveFrom(context),
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Settings'),
+        backgroundColor:
+            CupertinoColors.systemGroupedBackground.resolveFrom(context),
         border: null,
       ),
       child: SafeArea(
@@ -68,7 +70,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: 'Primary Season',
                     trailing: Text(
                       _seasons[settings.primarySeasonId] ?? 'Unknown Season',
-                      style: const TextStyle(color: CupertinoColors.systemGrey),
+                      style: TextStyle(
+                          color:
+                              CupertinoColors.systemGrey.resolveFrom(context)),
                     ),
                     onTap: () => _showSeasonPicker(settings.primarySeasonId),
                   ),
@@ -77,10 +81,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: CupertinoSlidingSegmentedControl<ThemeMode>(
                       groupValue: settings.themeMode,
-                      children: const {
-                        ThemeMode.light: Text('Light'),
-                        ThemeMode.dark: Text('Dark'),
-                        ThemeMode.system: Text('System'),
+                      children: {
+                        ThemeMode.light: Text('Light',
+                            style: TextStyle(
+                                color: settings.themeMode == ThemeMode.light
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : null)),
+                        ThemeMode.dark: Text('Dark',
+                            style: TextStyle(
+                                color: settings.themeMode == ThemeMode.dark
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : null)),
+                        ThemeMode.system: Text('System',
+                            style: TextStyle(
+                                color: settings.themeMode == ThemeMode.system
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : null)),
                       },
                       onValueChanged: (mode) {
                         if (mode != null) {
@@ -121,12 +137,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
               child: Text(
                 'Leave keys empty to use default shared keys (if available).',
                 style: TextStyle(
-                    fontSize: 12, color: CupertinoColors.secondaryLabel),
+                    fontSize: 12,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context)),
               ),
             ),
 
@@ -167,19 +185,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             // Footer
             Column(
-              children: const [
+              children: [
                 Text(
                   '© RoboSTEM FOUNDATION INC. 2026',
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: CupertinoColors.tertiaryLabel),
+                      color:
+                          CupertinoColors.tertiaryLabel.resolveFrom(context)),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'Data from RobotEvents API & RoboSTEM API',
                   style: TextStyle(
-                      fontSize: 10, color: CupertinoColors.tertiaryLabel),
+                      fontSize: 10,
+                      color:
+                          CupertinoColors.tertiaryLabel.resolveFrom(context)),
                 ),
               ],
             ),
@@ -195,10 +216,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: CupertinoColors.secondaryLabel),
+            color: CupertinoColors.secondaryLabel.resolveFrom(context)),
       ),
     );
   }
@@ -226,14 +247,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title,
               style: TextStyle(
                 fontSize: 16,
-                color: titleColor ?? CupertinoColors.label,
+                color: titleColor ?? CupertinoColors.label.resolveFrom(context),
               ),
             ),
             const Spacer(),
             if (trailing != null) trailing,
             if (trailing == null)
-              const Icon(CupertinoIcons.chevron_right,
-                  size: 16, color: CupertinoColors.systemGrey3),
+              Icon(CupertinoIcons.chevron_right,
+                  size: 16,
+                  color: CupertinoColors.systemGrey3.resolveFrom(context)),
           ],
         ),
       ),
@@ -252,7 +274,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: const TextStyle(fontSize: 16)),
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 16,
+                    color: CupertinoColors.label.resolveFrom(context))),
           ),
           Expanded(
             child: CupertinoTextField(

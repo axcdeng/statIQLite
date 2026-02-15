@@ -30,7 +30,10 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: Text(widget.title),
-        backgroundColor: CupertinoColors.black.withOpacity(0.9),
+        backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
+        leading: CupertinoNavigationBarBackButton(
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
       child: SafeArea(
         child: Stack(

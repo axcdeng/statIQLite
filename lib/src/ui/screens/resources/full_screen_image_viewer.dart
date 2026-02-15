@@ -15,13 +15,17 @@ class FullScreenImageViewer extends StatelessWidget {
   Widget build(BuildContext context) {
     // Use a black background for distraction-free viewing
     return CupertinoPageScaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
       navigationBar: CupertinoNavigationBar(
         middle: Text(
           title,
-          style: const TextStyle(color: CupertinoColors.white),
         ),
-        backgroundColor: Colors.black.withOpacity(0.8),
+        leading: CupertinoNavigationBarBackButton(
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        backgroundColor: CupertinoColors.systemBackground
+            .resolveFrom(context)
+            .withValues(alpha: 0.8),
       ),
       child: SafeArea(
         // Ensure it doesn't clip with notches/dynamic island

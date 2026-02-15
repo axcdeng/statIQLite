@@ -25,14 +25,14 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Material(
       color: Colors.transparent,
       child: CupertinoPageScaffold(
+        backgroundColor: CupertinoColors.systemGroupedBackground,
         navigationBar: CupertinoNavigationBar(
           middle: const Text('Resources'),
-          backgroundColor: CupertinoColors.systemGroupedBackground,
         ),
         child: SafeArea(
           child: Column(
@@ -58,8 +58,8 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
                               color: _selectedTab == i
-                                  ? CupertinoColors.white
-                                  : CupertinoColors.label,
+                                  ? Theme.of(context).colorScheme.onPrimary
+                                  : CupertinoColors.secondaryLabel,
                             ),
                           ),
                         ),

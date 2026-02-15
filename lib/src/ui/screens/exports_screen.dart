@@ -8,7 +8,7 @@ class ExportsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
@@ -22,8 +22,8 @@ class ExportsScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(CupertinoIcons.share_up,
-                    size: 80, color: primaryColor),
+                Icon(CupertinoIcons.share_up,
+                    size: 80, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 24),
                 const Text(
                   'Export scouting data to CSV',
@@ -63,7 +63,7 @@ class ExportsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 CupertinoButton(
-                  child: const Text('Export to Excel (XLSX)',
+                  child: Text('Export to Excel (XLSX)',
                       style: TextStyle(color: primaryColor)),
                   onPressed: () {
                     showCupertinoDialog(

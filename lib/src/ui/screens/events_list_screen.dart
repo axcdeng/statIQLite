@@ -30,7 +30,7 @@ class _EventsListScreenState extends ConsumerState<EventsListScreen> {
   @override
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(bottomNavIndexProvider);
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       body: IndexedStack(
@@ -138,7 +138,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
   @override
   Widget build(BuildContext context) {
     final eventsRepo = ref.watch(eventsRepositoryProvider);
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     final content = SafeArea(
       child: ValueListenableBuilder<Box<Event>>(
@@ -186,7 +186,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                       SliverToBoxAdapter(
                         child: CupertinoButton(
                           onPressed: _loadFuture,
-                          child: const Text('Load 3 More Weeks (Future)',
+                          child: Text('Load 3 More Weeks (Future)',
                               style: TextStyle(color: primaryColor)),
                         ),
                       ),
@@ -214,7 +214,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
         middle: const Text('Events'),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
-          child: const Icon(CupertinoIcons.refresh, color: primaryColor),
+          child: Icon(CupertinoIcons.refresh, color: primaryColor),
           onPressed: () => eventsRepo.basicSync(),
         ),
         backgroundColor: CupertinoColors.systemGroupedBackground,
@@ -228,7 +228,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
     final weekEnd = weekStart.add(const Duration(days: 6));
     final weekKey = weekStart.toIso8601String();
     final isExpanded = _expandedWeeks.contains(weekKey);
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     // Check if this week is the current week
     final now = DateTime.now();
@@ -274,7 +274,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: isCurrentWeek
-                                  ? [primaryColor, const Color(0xFF3A8FFF)]
+                                  ? [primaryColor, CupertinoColors.systemBlue]
                                   : [
                                       CupertinoColors.systemGrey4,
                                       CupertinoColors.systemGrey5
@@ -333,7 +333,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                                                 borderRadius:
                                                     BorderRadius.circular(4),
                                               ),
-                                              child: const Text('NOW',
+                                              child: Text('NOW',
                                                   style: TextStyle(
                                                       fontSize: 9,
                                                       fontWeight:
@@ -414,7 +414,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
   }
 
   Widget _buildEventTile(BuildContext context, Event event) {
-    const primaryColor = Color(0xFF49CAEB);
+    final primaryColor = Theme.of(context).colorScheme.primary;
     final dateStr =
         '${event.startDate.month}/${event.startDate.day}/${event.startDate.year}';
 
@@ -432,8 +432,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
         ),
         child: Row(
           children: [
-            const Icon(CupertinoIcons.location_solid,
-                size: 14, color: primaryColor),
+            Icon(CupertinoIcons.location_solid, size: 14, color: primaryColor),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
