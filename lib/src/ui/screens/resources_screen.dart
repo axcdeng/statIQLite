@@ -59,7 +59,8 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                               fontSize: 13,
                               color: _selectedTab == i
                                   ? Theme.of(context).colorScheme.onPrimary
-                                  : CupertinoColors.secondaryLabel,
+                                  : CupertinoColors.secondaryLabel
+                                      .resolveFrom(context),
                             ),
                           ),
                         ),

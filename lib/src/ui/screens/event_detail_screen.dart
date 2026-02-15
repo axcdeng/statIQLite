@@ -111,7 +111,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 0
                                       ? Theme.of(context).colorScheme.onPrimary
-                                      : CupertinoColors.secondaryLabel))),
+                                      : CupertinoColors.secondaryLabel
+                                          .resolveFrom(context)))),
                       1: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 4, vertical: 8),
@@ -121,7 +122,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 1
                                       ? Theme.of(context).colorScheme.onPrimary
-                                      : CupertinoColors.secondaryLabel))),
+                                      : CupertinoColors.secondaryLabel
+                                          .resolveFrom(context)))),
                       2: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 4, vertical: 8),
@@ -131,7 +133,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 2
                                       ? Theme.of(context).colorScheme.onPrimary
-                                      : CupertinoColors.secondaryLabel))),
+                                      : CupertinoColors.secondaryLabel
+                                          .resolveFrom(context)))),
                       3: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 4, vertical: 8),
@@ -141,7 +144,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 3
                                       ? Theme.of(context).colorScheme.onPrimary
-                                      : CupertinoColors.secondaryLabel))),
+                                      : CupertinoColors.secondaryLabel
+                                          .resolveFrom(context)))),
                       4: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 4, vertical: 8),
@@ -151,7 +155,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
                                   fontWeight: FontWeight.w600,
                                   color: _tabController.index == 4
                                       ? Theme.of(context).colorScheme.onPrimary
-                                      : CupertinoColors.secondaryLabel))),
+                                      : CupertinoColors.secondaryLabel
+                                          .resolveFrom(context)))),
                     },
                     onValueChanged: (int? value) {
                       if (value != null) {
@@ -384,10 +389,10 @@ class MatchTile extends StatelessWidget {
               children: [
                 Text(
                   match.shortName,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
-                      color: CupertinoColors.label),
+                      color: CupertinoColors.label.resolveFrom(context)),
                 ),
                 if (timeStr != null)
                   Padding(
@@ -618,17 +623,20 @@ class _SkillsList extends ConsumerWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Text('${item.rank}',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: CupertinoColors.label)),
+                        color: CupertinoColors.label.resolveFrom(context))),
               ),
               title: Text(item.teamNumber,
                   style: const TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 17)),
               subtitle: Text(
                   'Prog: ${item.programming}    Driver: ${item.driver}',
-                  style: const TextStyle(fontSize: 12)),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context))),
               trailing: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 6),

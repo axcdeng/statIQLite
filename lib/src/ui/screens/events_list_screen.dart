@@ -359,7 +359,8 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                                     color: isCurrentWeek
                                         ? primaryColor.withOpacity(0.15)
                                         : CupertinoColors
-                                            .tertiarySystemGroupedBackground,
+                                            .tertiarySystemGroupedBackground
+                                            .resolveFrom(context),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(

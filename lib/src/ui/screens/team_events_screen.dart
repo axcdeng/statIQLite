@@ -91,6 +91,8 @@ class _TeamEventsScreenState extends ConsumerState<TeamEventsScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: Text('${widget.team.number} Events'),
+        backgroundColor:
+            CupertinoColors.systemGroupedBackground.resolveFrom(context),
       ),
       child: Material(
         color: Colors.transparent,
@@ -186,7 +188,8 @@ class _EventExpansionTileState extends ConsumerState<_EventExpansionTile> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: CupertinoColors.secondarySystemGroupedBackground,
+        color: CupertinoColors.secondarySystemGroupedBackground
+            .resolveFrom(context),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -204,14 +207,16 @@ class _EventExpansionTileState extends ConsumerState<_EventExpansionTile> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(widget.event.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 15,
-                                color: CupertinoColors.label)),
+                                color: CupertinoColors.label
+                                    .resolveFrom(context))),
                         const SizedBox(height: 4),
                         Text(dateStr,
-                            style: const TextStyle(
-                                color: CupertinoColors.systemGrey,
+                            style: TextStyle(
+                                color: CupertinoColors.systemGrey
+                                    .resolveFrom(context),
                                 fontSize: 13)),
                       ],
                     ),
@@ -363,9 +368,10 @@ class _EventDetails extends ConsumerWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(a['title'] ?? 'Award',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontSize: 14,
-                                      color: CupertinoColors.label)),
+                                      color: CupertinoColors.label
+                                          .resolveFrom(context))),
                             ),
                           ],
                         ),

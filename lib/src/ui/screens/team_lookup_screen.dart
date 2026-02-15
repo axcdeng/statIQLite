@@ -470,9 +470,9 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 17,
-              color: CupertinoColors.label,
+              color: CupertinoColors.label.resolveFrom(context),
               letterSpacing: -0.4,
             ),
           ),
