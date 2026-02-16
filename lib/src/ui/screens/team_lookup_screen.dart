@@ -10,6 +10,7 @@ import 'package:roboscout_iq/src/ui/screens/event_divisions_screen.dart';
 import 'package:roboscout_iq/src/ui/screens/events_list_screen.dart';
 import 'package:roboscout_iq/src/utils/country_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:async';
 
 class TeamLookupScreen extends ConsumerStatefulWidget {
   const TeamLookupScreen({super.key});

@@ -1,7 +1,25 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
+
+// Standalone sort function for isolate
+List<Map<String, dynamic>> _sortSkillsList(List<dynamic> input) {
+  final list = List<Map<String, dynamic>>.from(input);
+  int sortRank(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final r1 = a['rank'] is num
+        ? (a['rank'] as num).toInt()
+        : int.tryParse(a['rank'].toString()) ?? 999;
+    final r2 = b['rank'] is num
+        ? (b['rank'] as num).toInt()
+        : int.tryParse(b['rank'].toString()) ?? 999;
+    return r1.compareTo(r2);
+  }
+
+  list.sort(sortRank);
+  return list;
+}
 
 class WorldSkillsScreen extends ConsumerStatefulWidget {
   const WorldSkillsScreen({super.key});
@@ -40,25 +58,17 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
         client.getGlobalSkills(gradeLevel: 'Elementary School'),
       ]);
 
+      // Sort in background isolate to prevent UI freeze
+      // This must happen outside setState
+      final sortedResults = await Future.wait([
+        compute(_sortSkillsList, results[0]),
+        compute(_sortSkillsList, results[1]),
+      ]);
+
       if (mounted) {
         setState(() {
-          // Use List.from to ensure we have mutable lists
-          _msSkills = List<Map<String, dynamic>>.from(results[0]);
-          _esSkills = List<Map<String, dynamic>>.from(results[1]);
-
-          // Explicitly sort by rank, handling potential type mismatches
-          int sortRank(Map<String, dynamic> a, Map<String, dynamic> b) {
-            final r1 = a['rank'] is num
-                ? (a['rank'] as num).toInt()
-                : int.tryParse(a['rank'].toString()) ?? 999;
-            final r2 = b['rank'] is num
-                ? (b['rank'] as num).toInt()
-                : int.tryParse(b['rank'].toString()) ?? 999;
-            return r1.compareTo(r2);
-          }
-
-          _msSkills.sort(sortRank);
-          _esSkills.sort(sortRank);
+          _msSkills = sortedResults[0];
+          _esSkills = sortedResults[1];
 
           _isLoading = false;
         });
@@ -146,6 +156,8 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                             ? const Center(child: Text('No data found'))
                             : ListView.builder(
                                 padding: EdgeInsets.zero,
+                                // Fixed extent optimization for smooth scrolling
+                                itemExtent: 72.0,
                                 itemCount: currentList.length,
                                 itemBuilder: (context, index) =>
                                     _buildSkillTile(
@@ -169,65 +181,102 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
     final driver = item['driver'];
     final primaryColor = Theme.of(context).colorScheme.primary;
 
-    return CupertinoListTile.notched(
-      leading: Container(
-        width: 32,
-        height: 32,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: CupertinoColors.secondarySystemGroupedBackground
-              .resolveFrom(context),
-          shape: BoxShape.circle,
-        ),
-        child: Text('$rank',
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: CupertinoColors.label.resolveFrom(context))),
-      ),
-      title: Row(
-        children: [
-          Text(number,
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 17,
-                  color: CupertinoColors.label.resolveFrom(context))),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              name,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 16,
-                color: CupertinoColors.label.resolveFrom(context),
-              ),
-            ),
-          ),
-        ],
-      ),
-      subtitle: Text('Prog: $prog    Driver: $driver',
-          style: TextStyle(
-              fontSize: 12,
-              color: CupertinoColors.secondaryLabel.resolveFrom(context))),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: primaryColor.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(20), // Pill shape
-        ),
-        child: Text(
-          '$score',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: primaryColor,
-            fontSize: 18,
-          ),
-        ),
-      ),
+    return GestureDetector(
       onTap: () {
         ref.read(teamSearchQueryProvider.notifier).state = number;
         ref.read(bottomNavIndexProvider.notifier).state = 2;
       },
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: CupertinoColors.secondarySystemGroupedBackground
+              .resolveFrom(context),
+          border: Border(
+            bottom: BorderSide(
+              color: CupertinoColors.separator.resolveFrom(context),
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            // Rank Circle
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGroupedBackground
+                    .resolveFrom(context),
+                shape: BoxShape.circle,
+              ),
+              child: Text('$rank',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: CupertinoColors.label.resolveFrom(context))),
+            ),
+            const SizedBox(width: 12),
+            // Team Info
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(number,
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 17,
+                              color:
+                                  CupertinoColors.label.resolveFrom(context))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          name,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: CupertinoColors.label.resolveFrom(context),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2), // Minimal gap
+                  Text('Prog: $prog • Driver: $driver',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: CupertinoColors.secondaryLabel
+                              .resolveFrom(context))),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Score Pill
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: primaryColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '$score',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: primaryColor,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(CupertinoIcons.chevron_right,
+                size: 14, color: CupertinoColors.systemGrey3),
+          ],
+        ),
+      ),
     );
   }
 }

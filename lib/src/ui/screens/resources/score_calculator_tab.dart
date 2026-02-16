@@ -190,7 +190,7 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 1.7, // Shorter cards
+                childAspectRatio: 1.55, // Taller cards to prevent overflow
               ),
               itemCount: items.length,
               itemBuilder: (context, index) {
@@ -219,16 +219,21 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          const SizedBox(height: 16), // Increased top space
+          const SizedBox(height: 10), // Reduced top space
           // Title
-          Text(
-            item.label,
-            style: TextStyle(
-              color: CupertinoColors.label.resolveFrom(context),
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: Text(
+              item.label,
+              style: TextStyle(
+                color: CupertinoColors.label.resolveFrom(context),
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 2),
           Text(
@@ -239,7 +244,7 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
             ),
           ),
 
-          const Spacer(), // Pushes controls down slightly, but limited by aspect ratio
+          const Spacer(),
 
           // Controls
           Row(
@@ -272,13 +277,16 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
               // Value
               SizedBox(
                 width: 32,
-                child: Text(
-                  '${item.value}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: CupertinoColors.label.resolveFrom(context),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 22,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '${item.value}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: CupertinoColors.label.resolveFrom(context),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 22,
+                    ),
                   ),
                 ),
               ),
@@ -308,7 +316,7 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
               ),
             ],
           ),
-          const SizedBox(height: 12), // Reduced bottom space (was spacer)
+          const SizedBox(height: 8), // Reduced bottom space
         ],
       ),
     );

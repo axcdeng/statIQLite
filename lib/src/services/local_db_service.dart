@@ -21,14 +21,25 @@ class LocalDbService {
     Hive.registerAdapter(ScoreEntryAdapter());
 
     // Open boxes
-    await Hive.openBox<Event>(AppConstants.eventsBox);
-    await Hive.openBox<Team>(AppConstants.teamsBox);
-    await Hive.openBox<MatchModel>(AppConstants.matchesBox);
-    await Hive.openBox<ScoutEntry>(AppConstants.scoutEntriesBox);
+    // Open boxes in parallel to speed up startup
+    // 1. Open CRITICAL boxes (Settings) immediately
+    // This must be done before runApp
     await Hive.openBox(AppConstants.settingsBox);
-    await Hive.openBox<ScoreEntry>('saved_scores');
-    await Hive.openBox<Team>(AppConstants.teamHistoryBox);
-    await Hive.openBox<Event>(AppConstants.eventHistoryBox);
+  }
+
+  /// Opens the remaining heavy boxes. Called from SplashScreen.
+  static Future<void> ensureOpen() async {
+    // Open boxes in parallel to speed up startup
+    await Future.wait([
+      Hive.openBox<Event>(AppConstants.eventsBox),
+      Hive.openBox<Team>(AppConstants.teamsBox),
+      Hive.openBox<MatchModel>(AppConstants.matchesBox),
+      Hive.openBox<ScoutEntry>(AppConstants.scoutEntriesBox),
+      // Settings is already open
+      Hive.openBox<ScoreEntry>('saved_scores'),
+      Hive.openBox<Team>(AppConstants.teamHistoryBox),
+      Hive.openBox<Event>(AppConstants.eventHistoryBox),
+    ]);
   }
 
   Box<Event> get eventsBox => Hive.box<Event>(AppConstants.eventsBox);

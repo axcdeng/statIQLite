@@ -65,6 +65,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   }
 
   Future<void> _fetchAllTeamStats() async {
+    // Yield to let UI render initial frame
+    await Future.microtask(() {});
+
     final favTeams = ref.read(favoritesServiceProvider).getFavoriteTeams();
     for (final teamNum in favTeams) {
       _fetchStatsForTeam(teamNum);
@@ -239,73 +242,91 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           middle: const Text('Favorites'),
         ),
         child: SafeArea(
-          child: ListView(
-            children: [
+          child: CustomScrollView(
+            slivers: [
               // TEAMS SECTION
               if (favTeams.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(32, 20, 16, 8),
-                  child: Text('TEAMS',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: CupertinoColors.secondaryLabel
-                              .resolveFrom(context),
-                          letterSpacing: 0.5)),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(32, 20, 16, 8),
+                    child: Text('TEAMS',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: CupertinoColors.secondaryLabel
+                                .resolveFrom(context),
+                            letterSpacing: 0.5)),
+                  ),
                 ),
-                ...favTeams.map((teamNum) => _buildTeamCard(teamNum)),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final teamNum = favTeams[index];
+                      return _buildTeamCard(teamNum, key: ValueKey(teamNum));
+                    },
+                    childCount: favTeams.length,
+                  ),
+                ),
               ],
 
               // EVENTS SECTION
               if (favEvents.isNotEmpty)
-                CupertinoListSection.insetGrouped(
-                  header: const Text('EVENTS'),
-                  margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  children: favEvents.map((event) {
-                    return CupertinoListTile.notched(
-                      leading:
-                          Icon(CupertinoIcons.calendar, color: _primaryColor),
-                      title: Text(event.name,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color:
-                                  CupertinoColors.label.resolveFrom(context))),
-                      subtitle: Text(event.sku ?? '',
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: CupertinoColors.secondaryLabel
-                                  .resolveFrom(context))),
-                      trailing: const CupertinoListTileChevron(),
-                      onTap: () {
-                        if (event.divisions != null &&
-                            event.divisions!.length > 1) {
-                          Navigator.of(context).push(CupertinoPageRoute(
-                              builder: (_) =>
-                                  EventDivisionsScreen(event: event)));
-                        } else {
-                          Navigator.of(context).push(CupertinoPageRoute(
-                              builder: (_) => EventDetailScreen(event: event)));
-                        }
-                      },
-                    );
-                  }).toList(),
+                SliverToBoxAdapter(
+                  child: CupertinoListSection.insetGrouped(
+                    header: const Text('EVENTS'),
+                    margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    children: favEvents.map((event) {
+                      return CupertinoListTile.notched(
+                        key: ValueKey(event.sku),
+                        leading:
+                            Icon(CupertinoIcons.calendar, color: _primaryColor),
+                        title: Text(event.name,
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: CupertinoColors.label
+                                    .resolveFrom(context))),
+                        subtitle: Text(event.sku ?? '',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: CupertinoColors.secondaryLabel
+                                    .resolveFrom(context))),
+                        trailing: const CupertinoListTileChevron(),
+                        onTap: () {
+                          if (event.divisions != null &&
+                              event.divisions!.length > 1) {
+                            Navigator.of(context).push(CupertinoPageRoute(
+                                builder: (_) =>
+                                    EventDivisionsScreen(event: event)));
+                          } else {
+                            Navigator.of(context).push(CupertinoPageRoute(
+                                builder: (_) =>
+                                    EventDetailScreen(event: event)));
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
                 ),
 
               // EMPTY STATE
               if (favTeams.isEmpty && favEvents.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 100),
-                  child: Center(
-                    child: Text(
-                      'No favorites yet.\nStar teams or events to see them here!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: CupertinoColors.secondaryLabel, fontSize: 17),
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 100),
+                    child: Center(
+                      child: Text(
+                        'No favorites yet.\nStar teams or events to see them here!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: CupertinoColors.secondaryLabel,
+                            fontSize: 17),
+                      ),
                     ),
                   ),
                 ),
 
-              const SizedBox(height: 40),
+              const SliverToBoxAdapter(child: SizedBox(height: 40)),
             ],
           ),
         ),
@@ -313,7 +334,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     );
   }
 
-  Widget _buildTeamCard(String teamNumber) {
+  Widget _buildTeamCard(String teamNumber, {Key? key}) {
     final hasStats = _teamStats.containsKey(teamNumber);
     final isLoading = _loading[teamNumber] == true;
     final isExpanded = _expanded[teamNumber] ?? false;

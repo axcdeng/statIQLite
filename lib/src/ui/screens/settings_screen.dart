@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
 import 'package:roboscout_iq/src/ui/screens/event_detail_screen.dart';
 import 'package:roboscout_iq/src/ui/screens/event_divisions_screen.dart';
+import 'package:roboscout_iq/src/ui/screens/about_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -211,6 +212,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
 
+            const SizedBox(height: 24),
+
+            // Section: About
+            Container(
+              decoration: BoxDecoration(
+                color: CupertinoColors.secondarySystemGroupedBackground
+                    .resolveFrom(context),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: _buildListTile(
+                title: 'About',
+                icon: CupertinoIcons.info,
+                onTap: () {
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(builder: (_) => const AboutScreen()),
+                  );
+                },
+              ),
+            ),
+
             const SizedBox(height: 40),
 
             // Footer
@@ -231,6 +252,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       fontSize: 10,
                       color:
                           CupertinoColors.tertiaryLabel.resolveFrom(context)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Not affiliated with or endorsed by VEX Robotics or REC Foundation.',
+                  style: TextStyle(
+                      fontSize: 10,
+                      color:
+                          CupertinoColors.tertiaryLabel.resolveFrom(context)),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),

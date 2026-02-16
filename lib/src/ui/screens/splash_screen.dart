@@ -19,8 +19,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _initApp() async {
-    // Basic init logic
-    // LocalDbService.init() is called in main.dart
+    // Initialize remaining heavy Hive boxes
+    await LocalDbService.ensureOpen();
+
+    // Initialize Favorites
+    // We access the provider which is already created by ProviderScope in main
+    await ref.read(favoritesServiceProvider).init();
 
     // Check for API Key
     final secureStorage = ref.read(secureStorageServiceProvider);

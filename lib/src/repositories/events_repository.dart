@@ -12,6 +12,11 @@ class EventsRepository {
   final LocalDbService _localDb;
   final SettingsState _settings;
 
+  // In-memory cache for event details
+  final Map<int, List<Map<String, dynamic>>> _rankingsCache = {};
+  final Map<int, List<Map<String, dynamic>>> _skillsCache = {};
+  final Map<int, List<Map<String, dynamic>>> _awardsCache = {};
+
   EventsRepository(this._apiClient, this._localDb, this._settings);
 
   /// Syncs events from the RobotEvents API into local Hive storage.
@@ -94,7 +99,12 @@ class EventsRepository {
   }
 
   Future<List<Map<String, dynamic>>> getEventRankings(int eventId) async {
-    return _apiClient.getEventRankings(eventId);
+    if (_rankingsCache.containsKey(eventId)) {
+      return _rankingsCache[eventId]!;
+    }
+    final data = await _apiClient.getEventRankings(eventId);
+    _rankingsCache[eventId] = data;
+    return data;
   }
 
   Future<List<Event>> getEventsBySkus(List<String> skus) async {
@@ -144,10 +154,20 @@ class EventsRepository {
   }
 
   Future<List<Map<String, dynamic>>> getEventAwards(int eventId) async {
-    return _apiClient.getEventAwards(eventId);
+    if (_awardsCache.containsKey(eventId)) {
+      return _awardsCache[eventId]!;
+    }
+    final data = await _apiClient.getEventAwards(eventId);
+    _awardsCache[eventId] = data;
+    return data;
   }
 
   Future<List<Map<String, dynamic>>> getEventSkills(int eventId) async {
-    return _apiClient.getEventSkills(eventId);
+    if (_skillsCache.containsKey(eventId)) {
+      return _skillsCache[eventId]!;
+    }
+    final data = await _apiClient.getEventSkills(eventId);
+    _skillsCache[eventId] = data;
+    return data;
   }
 }
