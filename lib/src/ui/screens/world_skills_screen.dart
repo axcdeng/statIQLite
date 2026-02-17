@@ -113,6 +113,13 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                     thumbColor: primaryColor,
                     backgroundColor: CupertinoColors.tertiarySystemFill,
                     groupValue: _gradeLevel,
+                    onValueChanged: (String? value) {
+                      if (value != null) {
+                        setState(() {
+                          _gradeLevel = value;
+                        });
+                      }
+                    },
                     children: {
                       'Middle School': Padding(
                         padding: const EdgeInsets.symmetric(
@@ -136,13 +143,6 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                                     : CupertinoColors.secondaryLabel
                                         .resolveFrom(context))),
                       ),
-                    },
-                    onValueChanged: (String? value) {
-                      if (value != null) {
-                        setState(() {
-                          _gradeLevel = value;
-                        });
-                      }
                     },
                   ),
                 ),
