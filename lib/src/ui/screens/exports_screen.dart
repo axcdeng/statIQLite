@@ -11,8 +11,8 @@ class ExportsScreen extends ConsumerWidget {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: const Text('Export Data'),
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Export Data'),
       ),
       child: SafeArea(
         child: Center(
@@ -50,9 +50,9 @@ class ExportsScreen extends ConsumerWidget {
                         scoutingRepo.watchEntries().value.values.toList();
                     await exportService.shareScoutEntriesCsv(entries);
                   },
-                  child: Row(
+                  child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Icon(CupertinoIcons.share),
                       SizedBox(width: 8),
                       Text('Export to CSV',

@@ -6,17 +6,17 @@ part of 'scout_entry_model.dart';
 // TypeAdapterGenerator
 // **************************************************************************
 
-class ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImpl> {
+class ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImplImpl> {
   @override
   final int typeId = 3;
 
   @override
-  _$ScoutEntryImpl read(BinaryReader reader) {
+  _$ScoutEntryImplImpl read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return _$ScoutEntryImpl(
+    return _$ScoutEntryImplImpl(
       id: fields[0] as String,
       eventId: fields[1] as int,
       matchId: fields[2] as int,
@@ -29,7 +29,7 @@ class ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImpl> {
   }
 
   @override
-  void write(BinaryWriter writer, _$ScoutEntryImpl obj) {
+  void write(BinaryWriter writer, _$ScoutEntryImplImpl obj) {
     writer
       ..writeByte(8)
       ..writeByte(0)
@@ -65,8 +65,8 @@ class ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImpl> {
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$ScoutEntryImpl _$$ScoutEntryImplFromJson(Map<String, dynamic> json) =>
-    _$ScoutEntryImpl(
+_$ScoutEntryImplImpl _$$ScoutEntryImplImplFromJson(Map<String, dynamic> json) =>
+    _$ScoutEntryImplImpl(
       id: json['id'] as String,
       eventId: (json['eventId'] as num).toInt(),
       matchId: (json['matchId'] as num).toInt(),
@@ -77,7 +77,8 @@ _$ScoutEntryImpl _$$ScoutEntryImplFromJson(Map<String, dynamic> json) =>
       scoutName: json['scoutName'] as String,
     );
 
-Map<String, dynamic> _$$ScoutEntryImplToJson(_$ScoutEntryImpl instance) =>
+Map<String, dynamic> _$$ScoutEntryImplImplToJson(
+        _$ScoutEntryImplImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
       'eventId': instance.eventId,

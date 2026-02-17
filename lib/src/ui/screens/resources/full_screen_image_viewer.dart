@@ -25,7 +25,7 @@ class FullScreenImageViewer extends StatelessWidget {
         ),
         backgroundColor: CupertinoColors.systemBackground
             .resolveFrom(context)
-            .withValues(alpha: 0.8),
+            .withOpacity(0.8),
       ),
       child: SafeArea(
         // Ensure it doesn't clip with notches/dynamic island

@@ -18,20 +18,20 @@ dependencies:
   flutter_secure_storage: ^8.0.0
   csv: ^5.0.0
   excel: ^2.0.0
-  share_plus: ^12.0.1
+  share_plus: ^7.2.0
   path_provider: ^2.0.0
   intl: ^0.18.0
-  workmanager: ^0.5.0
+  workmanager: ^0.7.0
   uuid: ^3.0.6
-  url_launcher: ^6.3.2
+  url_launcher: ^6.1.11
   flutter_pdfview: ^1.4.4
+  freezed_annotation: ^2.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   build_runner: ^2.4.0
   freezed: ^2.2.0
-  freezed_annotation: ^2.2.0
   json_serializable: ^6.5.0
   hive_generator: ^2.0.0
   flutter_lints: ^2.0.0

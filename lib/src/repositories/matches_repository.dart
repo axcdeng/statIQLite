@@ -30,7 +30,7 @@ class MatchesRepository {
       // 4. Delete stale matches
       if (staleIds.isNotEmpty) {
         await _localDb.matchesBox.deleteAll(staleIds);
-        print('Removed ${staleIds.length} stale matches for event $eventId');
+        // print('Removed ${staleIds.length} stale matches for event $eventId');
       }
 
       // 5. Save new/updated matches

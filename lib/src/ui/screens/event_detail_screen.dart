@@ -220,7 +220,6 @@ class _TeamsList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teamsRepo = ref.watch(teamsRepositoryProvider);
-    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return ValueListenableBuilder<Box<Team>>(
       valueListenable: teamsRepo.watchTeams(),
@@ -734,7 +733,7 @@ class _SkillsList extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
-                        color: primaryColor.withValues(alpha: 0.15),
+                        color: primaryColor.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(

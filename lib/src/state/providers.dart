@@ -32,7 +32,6 @@ final settingsProvider =
 });
 
 final apiClientProvider = Provider((ref) => ApiClient(
-      ref.read(secureStorageServiceProvider),
       ref.watch(settingsProvider),
     ));
 

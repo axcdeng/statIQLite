@@ -415,7 +415,7 @@ class _CircleTimerPainter extends CustomPainter {
 
       // Glow effect
       final glowPaint = Paint()
-        ..color = color.withValues(alpha: 0.3)
+        ..color = color.withOpacity(0.3)
         ..style = PaintingStyle.fill
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
       canvas.drawCircle(Offset(dotX, dotY), strokeWidth + 4, glowPaint);

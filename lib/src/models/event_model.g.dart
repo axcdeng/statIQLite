@@ -89,30 +89,6 @@ class EventAdapter extends TypeAdapter<Event> {
 // JsonSerializableGenerator
 // **************************************************************************
 
-Event _$EventFromJson(Map<String, dynamic> json) => Event(
-      id: (json['id'] as num).toInt(),
-      name: json['name'] as String,
-      venue: json['venue'] as String?,
-      startDate: DateTime.parse(json['startDate'] as String),
-      endDate: DateTime.parse(json['endDate'] as String),
-      programCode: json['programCode'] as String? ?? 'VIQC',
-      lastUpdated: json['lastUpdated'] == null
-          ? null
-          : DateTime.parse(json['lastUpdated'] as String),
-      location: json['location'] as String?,
-      sku: json['sku'] as String?,
-      country: json['country'] as String?,
-      region: json['region'] as String?,
-      level: json['level'] as String?,
-      grades:
-          (json['grades'] as List<dynamic>?)?.map((e) => e as String).toList(),
-      divisions: (json['divisions'] as List<dynamic>?)
-          ?.map((e) => Division.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      city: json['city'] as String?,
-      seasonName: json['seasonName'] as String?,
-    );
-
 Map<String, dynamic> _$EventToJson(Event instance) => <String, dynamic>{
       'id': instance.id,
       'name': instance.name,

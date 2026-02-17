@@ -80,22 +80,6 @@ class TeamAdapter extends TypeAdapter<Team> {
 // JsonSerializableGenerator
 // **************************************************************************
 
-Team _$TeamFromJson(Map<String, dynamic> json) => Team(
-      id: (json['id'] as num).toInt(),
-      number: json['number'] as String,
-      name: json['name'] as String,
-      school: json['school'] as String?,
-      robotName: json['robotName'] as String?,
-      worldRank: (json['worldRank'] as num?)?.toInt(),
-      eventId: (json['eventId'] as num).toInt(),
-      organization: json['organization'] as String?,
-      location: json['location'] as String?,
-      trueskill: (json['trueskill'] as num?)?.toDouble(),
-      ccwm: (json['ccwm'] as num?)?.toDouble(),
-      statiq: json['statiq'] as Map<String, dynamic>?,
-      grade: json['grade'] as String?,
-    );
-
 Map<String, dynamic> _$TeamToJson(Team instance) => <String, dynamic>{
       'id': instance.id,
       'number': instance.number,

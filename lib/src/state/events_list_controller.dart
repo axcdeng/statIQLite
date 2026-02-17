@@ -82,12 +82,14 @@ class EventsListState {
   final Map<int, List<Event>> weekCache; // Key is index in `weeks`
   final EventFilters filters;
   final bool isIndexing;
+  final List<String> availableCountries;
 
   const EventsListState({
     this.weeks = const [],
     this.weekCache = const {},
     this.filters = const EventFilters(),
     this.isIndexing = false,
+    this.availableCountries = const [],
   });
 
   EventsListState copyWith({
@@ -95,12 +97,14 @@ class EventsListState {
     Map<int, List<Event>>? weekCache,
     EventFilters? filters,
     bool? isIndexing,
+    List<String>? availableCountries,
   }) {
     return EventsListState(
       weeks: weeks ?? this.weeks,
       weekCache: weekCache ?? this.weekCache,
       filters: filters ?? this.filters,
       isIndexing: isIndexing ?? this.isIndexing,
+      availableCountries: availableCountries ?? this.availableCountries,
     );
   }
 }
@@ -212,17 +216,18 @@ class EventsListController extends StateNotifier<EventsListState> {
 
     // 4. Compute
     // Threshold for using isolate
-    Map<int, List<Event>> resultMap;
+    _ComputeResult result;
     if (allEvents.length > 500) {
-      resultMap = await compute(_buildWeekCacheIsolated, params);
+      result = await compute(_buildWeekCacheIsolated, params);
     } else {
-      resultMap = _buildWeekCacheIsolated(params);
+      result = _buildWeekCacheIsolated(params);
     }
 
     // 5. Update state
     if (mounted) {
       state = state.copyWith(
-        weekCache: resultMap,
+        weekCache: result.weekCache,
+        availableCountries: result.availableCountries,
         isIndexing: false,
       );
     }
@@ -246,7 +251,18 @@ class _ComputeParams {
   });
 }
 
-Map<int, List<Event>> _buildWeekCacheIsolated(_ComputeParams params) {
+@immutable
+class _ComputeResult {
+  final Map<int, List<Event>> weekCache;
+  final List<String> availableCountries;
+
+  const _ComputeResult({
+    required this.weekCache,
+    required this.availableCountries,
+  });
+}
+
+_ComputeResult _buildWeekCacheIsolated(_ComputeParams params) {
   final cache = <int, List<Event>>{};
   final searchQuery = params.filters.searchQuery.toLowerCase();
   final countries = params.filters.countries;
@@ -349,7 +365,18 @@ Map<int, List<Event>> _buildWeekCacheIsolated(_ComputeParams params) {
     list.sort((a, b) => b.startDate.compareTo(a.startDate));
   }
 
-  return cache;
+  // Compute available countries from ALL events (not filtered)
+  final availableCountries = params.allEvents
+      .map((e) => e.country)
+      .whereType<String>()
+      .toSet()
+      .toList()
+    ..sort();
+
+  return _ComputeResult(
+    weekCache: cache,
+    availableCountries: availableCountries,
+  );
 }
 
 // -----------------------------------------------------------------------------
