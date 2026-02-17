@@ -97,8 +97,8 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
           middle: const Text('World Skills'),
           trailing: CupertinoButton(
             padding: EdgeInsets.zero,
-            child: Icon(CupertinoIcons.refresh, color: primaryColor),
             onPressed: _fetchSkills,
+            child: Icon(CupertinoIcons.refresh, color: primaryColor),
           ),
         ),
         child: SafeArea(

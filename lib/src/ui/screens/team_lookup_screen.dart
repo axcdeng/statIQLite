@@ -121,8 +121,8 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
     return Material(
       color: Colors.transparent,
       child: CupertinoPageScaffold(
-        navigationBar: CupertinoNavigationBar(
-          middle: const Text('Lookup'),
+        navigationBar: const CupertinoNavigationBar(
+          middle: Text('Lookup'),
           // Removed trailing link icon
         ),
         child: SafeArea(

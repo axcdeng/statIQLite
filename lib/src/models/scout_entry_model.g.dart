@@ -6,7 +6,7 @@ part of 'scout_entry_model.dart';
 // TypeAdapterGenerator
 // **************************************************************************
 
-class ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImplImpl> {
+class _ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImplImpl> {
   @override
   final int typeId = 3;
 
@@ -56,7 +56,7 @@ class ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImplImpl> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is ScoutEntryAdapter &&
+      other is _ScoutEntryAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
