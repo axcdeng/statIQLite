@@ -220,7 +220,6 @@ class _TeamsList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teamsRepo = ref.watch(teamsRepositoryProvider);
-    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return ValueListenableBuilder<Box<Team>>(
       valueListenable: teamsRepo.watchTeams(),
