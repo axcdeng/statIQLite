@@ -54,6 +54,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   final Map<String, bool> _loading = {};
 
   bool _initialFetchDone = false;
+  bool _sortAlphabetically = false;
 
   @override
   void didChangeDependencies() {
@@ -228,7 +229,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     final favoritesService = ref.watch(favoritesServiceProvider);
-    final favTeams = favoritesService.getFavoriteTeams();
+    final favTeams = List<String>.from(favoritesService.getFavoriteTeams());
+    if (_sortAlphabetically) {
+      favTeams.sort(_compareTeamNumbers);
+    }
     final favEventsSkus = favoritesService.getFavoriteEvents();
     final eventsRepo = ref.read(eventsRepositoryProvider);
     final favEvents = eventsRepo.getLocalEvents(favEventsSkus);
@@ -249,13 +253,51 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(32, 20, 16, 8),
-                    child: Text('TEAMS',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: CupertinoColors.secondaryLabel
-                                .resolveFrom(context),
-                            letterSpacing: 0.5)),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('TEAMS',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: CupertinoColors.secondaryLabel
+                                    .resolveFrom(context),
+                                letterSpacing: 0.5)),
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          minSize: 0,
+                          onPressed: () {
+                            setState(() {
+                              _sortAlphabetically = !_sortAlphabetically;
+                            });
+                          },
+                          child: Row(
+                            children: [
+                              Text(
+                                'Sort A-Z',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _sortAlphabetically
+                                      ? _primaryColor
+                                      : CupertinoColors.secondaryLabel
+                                          .resolveFrom(context),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                CupertinoIcons.sort_down,
+                                size: 14,
+                                color: _sortAlphabetically
+                                    ? _primaryColor
+                                    : CupertinoColors.secondaryLabel
+                                        .resolveFrom(context),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 SliverList(
@@ -628,5 +670,22 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         ],
       ),
     );
+  }
+
+  int _compareTeamNumbers(String a, String b) {
+    final re = RegExp(r'^(\d+)([A-Z]?.*)$');
+    final matchA = re.firstMatch(a.toUpperCase());
+    final matchB = re.firstMatch(b.toUpperCase());
+
+    if (matchA == null || matchB == null) return a.compareTo(b);
+
+    final numA = int.tryParse(matchA.group(1)!) ?? 0;
+    final numB = int.tryParse(matchB.group(1)!) ?? 0;
+
+    if (numA != numB) return numA.compareTo(numB);
+
+    final suffixA = matchA.group(2) ?? '';
+    final suffixB = matchB.group(2) ?? '';
+    return suffixA.compareTo(suffixB);
   }
 }
