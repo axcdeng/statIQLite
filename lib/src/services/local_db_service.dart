@@ -39,6 +39,7 @@ class LocalDbService {
       Hive.openBox<ScoreEntry>('saved_scores'),
       Hive.openBox<Team>(AppConstants.teamHistoryBox),
       Hive.openBox<Event>(AppConstants.eventHistoryBox),
+      Hive.openBox(AppConstants.leaderboardBox),
     ]);
   }
 
@@ -53,6 +54,7 @@ class LocalDbService {
   Box<Team> get teamHistoryBox => Hive.box<Team>(AppConstants.teamHistoryBox);
   Box<Event> get eventHistoryBox =>
       Hive.box<Event>(AppConstants.eventHistoryBox);
+  Box get leaderboardBox => Hive.box(AppConstants.leaderboardBox);
 
   Future<void> clearAllData() async {
     await eventsBox.clear();
@@ -63,5 +65,6 @@ class LocalDbService {
     await scoreEntriesBox.clear();
     await teamHistoryBox.clear();
     await eventHistoryBox.clear();
+    await leaderboardBox.clear();
   }
 }

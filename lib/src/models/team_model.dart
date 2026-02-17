@@ -29,7 +29,7 @@ class Team {
   @HiveField(10)
   final double? ccwm;
   @HiveField(11)
-  final Map<String, dynamic>? statiq;
+  final Map? statiq;
   @HiveField(12)
   final String? grade;
 
@@ -50,15 +50,22 @@ class Team {
   });
 
   factory Team.fromJson(Map<String, dynamic> json) {
-    final locationObj = json['location'] as Map<String, dynamic>?;
-    final city = locationObj?['city'] as String?;
-    final region = locationObj?['region'] as String?;
-    final country = locationObj?['country'] as String?;
-    final locationStr = [city, region, country]
-        .where((e) => e != null && e.isNotEmpty)
-        .join(', ');
+    dynamic loc = json['location'];
+    String? locationStr;
+    if (loc is Map) {
+      final city = loc['city'] as String?;
+      final region = loc['region'] as String?;
+      final country = loc['country'] as String?;
+      locationStr = [city, region, country]
+          .where((e) => e != null && e.isNotEmpty)
+          .join(', ');
+    } else if (loc is String) {
+      locationStr = loc;
+    }
 
-    final statiq = json['statiq'] as Map<String, dynamic>?;
+    final statiqRaw = json['statiq'];
+    final statiq =
+        statiqRaw is Map ? Map<String, dynamic>.from(statiqRaw) : null;
     final perf = statiq?['performance'] as num?;
 
     // Robust ID parsing:
@@ -103,7 +110,7 @@ class Team {
     String? location,
     double? trueskill,
     double? ccwm,
-    Map<String, dynamic>? statiq,
+    Map? statiq,
     String? grade,
   }) {
     return Team(
