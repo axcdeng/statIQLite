@@ -13,6 +13,7 @@ import 'package:roboscout_iq/src/services/rating_service.dart';
 import 'package:roboscout_iq/src/services/secure_storage_service.dart';
 import 'package:roboscout_iq/src/services/sync_service.dart';
 import 'package:roboscout_iq/src/state/settings_provider.dart';
+import 'package:roboscout_iq/src/repositories/leaderboard_repository.dart';
 
 // Services
 final localDbServiceProvider = Provider((ref) => LocalDbService());
@@ -60,6 +61,11 @@ final scoutingRepositoryProvider = Provider((ref) => ScoutingRepository(
 // Sync
 final syncServiceProvider = Provider((ref) => SyncService(
       ref.read(eventsRepositoryProvider),
+    ));
+
+final leaderboardRepositoryProvider = Provider((ref) => LeaderboardRepository(
+      ref.read(apiClientProvider),
+      ref.read(localDbServiceProvider),
     ));
 
 // Navigation State

@@ -34,9 +34,8 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
   List<Map<String, dynamic>> _msSkills = [];
   List<Map<String, dynamic>> _esSkills = [];
 
-  // Cache for TrueSkill data
-  List<Team> _msTrueSkill = [];
-  List<Team> _esTrueSkill = [];
+  // Cache for TrueSkill data (Unified)
+  List<Team> _trueSkills = [];
 
   bool _isLoading = true;
   String _errorMessage = '';
@@ -50,24 +49,26 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
     _fetchData();
   }
 
-  Future<void> _fetchData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
+  Future<void> _fetchData(
+      {bool forceRefresh = false, bool isPullToRefresh = false}) async {
+    if (!isPullToRefresh) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = '';
+      });
+    }
 
     try {
-      final client = ref.read(apiClientProvider);
+      final repo = ref.read(leaderboardRepositoryProvider);
 
       if (_metric == 'Skills') {
         // Fetch both MS and ES in parallel
         final results = await Future.wait([
-          client.getGlobalSkills(gradeLevel: 'Middle School'),
-          client.getGlobalSkills(gradeLevel: 'Elementary School'),
+          repo.getGlobalSkills('Middle School', forceRefresh: forceRefresh),
+          repo.getGlobalSkills('Elementary School', forceRefresh: forceRefresh),
         ]);
 
         // Sort in background isolate to prevent UI freeze
-        // This must happen outside setState
         final sortedResults = await Future.wait([
           compute(_sortSkillsList, results[0]),
           compute(_sortSkillsList, results[1]),
@@ -81,15 +82,12 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
           });
         }
       } else if (_metric == 'TrueSkill') {
-        final results = await Future.wait([
-          client.getGlobalTrueSkillRankings(gradeLevel: 'Middle School'),
-          client.getGlobalTrueSkillRankings(gradeLevel: 'Elementary School'),
-        ]);
+        final results =
+            await repo.getGlobalTrueSkillRankings(forceRefresh: forceRefresh);
 
         if (mounted) {
           setState(() {
-            _msTrueSkill = results[0];
-            _esTrueSkill = results[1];
+            _trueSkills = results;
             _isLoading = false;
           });
         }
@@ -124,59 +122,17 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
           middle: const Text('World Leaderboards'),
           trailing: CupertinoButton(
             padding: EdgeInsets.zero,
-            onPressed: _fetchData,
+            onPressed: () => _fetchData(forceRefresh: true),
             child: Icon(CupertinoIcons.refresh, color: primaryColor),
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
+              // Metric Selector (Top)
               Padding(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16.0, vertical: 12.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: CupertinoSlidingSegmentedControl<String>(
-                    thumbColor: primaryColor,
-                    backgroundColor: CupertinoColors.tertiarySystemFill,
-                    groupValue: _gradeLevel,
-                    onValueChanged: (String? value) {
-                      if (value != null) {
-                        setState(() {
-                          _gradeLevel = value;
-                        });
-                      }
-                    },
-                    children: {
-                      'Middle School': Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
-                        child: Text('Middle School',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: _gradeLevel == 'Middle School'
-                                    ? Theme.of(context).colorScheme.onPrimary
-                                    : CupertinoColors.secondaryLabel
-                                        .resolveFrom(context))),
-                      ),
-                      'Elementary School': Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
-                        child: Text('Elementary School',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: _gradeLevel == 'Elementary School'
-                                    ? Theme.of(context).colorScheme.onPrimary
-                                    : CupertinoColors.secondaryLabel
-                                        .resolveFrom(context))),
-                      ),
-                    },
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0)
-                    .copyWith(bottom: 12.0),
                 child: SizedBox(
                   width: double.infinity,
                   child: CupertinoSlidingSegmentedControl<String>(
@@ -187,11 +143,6 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                       if (value != null) {
                         setState(() {
                           _metric = value;
-                          // If we switch metrics, we might need to fetch data if not already cached
-                          // But for simplicity and to ensure freshness, let's fetch.
-                          // Actually, user experience is better if we cache.
-                          // But sticking to "same logic as world skills" which fetches on load.
-                          // Let's fetch data when metric changes.
                           _fetchData();
                         });
                       }
@@ -237,6 +188,53 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                   ),
                 ),
               ),
+
+              // Grade Level Selector (Conditionally below metric selector)
+              if (_metric == 'Skills')
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0)
+                      .copyWith(bottom: 12.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: CupertinoSlidingSegmentedControl<String>(
+                      thumbColor: primaryColor,
+                      backgroundColor: CupertinoColors.tertiarySystemFill,
+                      groupValue: _gradeLevel,
+                      onValueChanged: (String? value) {
+                        if (value != null) {
+                          setState(() {
+                            _gradeLevel = value;
+                          });
+                        }
+                      },
+                      children: {
+                        'Middle School': Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 8),
+                          child: Text('Middle School',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: _gradeLevel == 'Middle School'
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : CupertinoColors.secondaryLabel
+                                          .resolveFrom(context))),
+                        ),
+                        'Elementary School': Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 8),
+                          child: Text('Elementary School',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: _gradeLevel == 'Elementary School'
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : CupertinoColors.secondaryLabel
+                                          .resolveFrom(context))),
+                        ),
+                      },
+                    ),
+                  ),
+                ),
+
               Expanded(
                 child: _buildContent(context),
               ),
@@ -260,41 +258,58 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
       return const Center(child: Text('Coming soon'));
     }
 
+    List<Widget> slivers = [];
+
+    // Add Pull-to-Refresh
+    slivers.add(CupertinoSliverRefreshControl(
+      onRefresh: () => _fetchData(forceRefresh: true, isPullToRefresh: true),
+    ));
+
     if (_metric == 'Skills') {
       final currentList =
           _gradeLevel == 'Middle School' ? _msSkills : _esSkills;
       if (currentList.isEmpty) {
-        return const Center(child: Text('No data found'));
+        slivers.add(const SliverFillRemaining(
+          child: Center(child: Text('No data found')),
+        ));
+      } else {
+        slivers.add(SliverFixedExtentList(
+          itemExtent: 72.0,
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => _buildSkillTile(currentList[index], context),
+            childCount: currentList.length,
+          ),
+        ));
       }
-      return ListView.builder(
-        padding: EdgeInsets.zero,
-        itemExtent: 72.0,
-        itemCount: currentList.length,
-        itemBuilder: (context, index) =>
-            _buildSkillTile(currentList[index], context),
-      );
     } else if (_metric == 'TrueSkill') {
-      final currentList =
-          _gradeLevel == 'Middle School' ? _msTrueSkill : _esTrueSkill;
+      final currentList = _trueSkills;
       if (currentList.isEmpty) {
-        return const Center(child: Text('No data found'));
+        slivers.add(const SliverFillRemaining(
+          child: Center(child: Text('No data found')),
+        ));
+      } else {
+        slivers.add(SliverFixedExtentList(
+          itemExtent: 72.0,
+          delegate: SliverChildBuilderDelegate(
+            (context, index) =>
+                _buildTrueSkillTile(currentList[index], index + 1, context),
+            childCount: currentList.length,
+          ),
+        ));
       }
-      return ListView.builder(
-        padding: EdgeInsets.zero,
-        itemExtent: 72.0,
-        itemCount: currentList.length,
-        itemBuilder: (context, index) =>
-            _buildTrueSkillTile(currentList[index], index + 1, context),
-      );
     }
 
-    return const SizedBox.shrink();
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: slivers,
+    );
   }
 
   Widget _buildSkillTile(Map<String, dynamic> item, BuildContext context) {
     final rank = item['rank'];
-    final team = item['team'] as Map<String, dynamic>;
-    final number = team['number'];
+    final teamRaw = item['team'];
+    final team = teamRaw is Map ? Map<String, dynamic>.from(teamRaw) : {};
+    final number = team['number'] ?? '';
     final name = team['name'] ?? '';
     final score = item['score'];
     final prog = item['programming'];

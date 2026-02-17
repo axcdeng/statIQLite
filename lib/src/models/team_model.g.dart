@@ -28,7 +28,7 @@ class TeamAdapter extends TypeAdapter<Team> {
       location: fields[8] as String?,
       trueskill: fields[9] as double?,
       ccwm: fields[10] as double?,
-      statiq: (fields[11] as Map?)?.cast<String, dynamic>(),
+      statiq: (fields[11] as Map?)?.cast<dynamic, dynamic>(),
       grade: fields[12] as String?,
     );
   }

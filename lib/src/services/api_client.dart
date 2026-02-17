@@ -334,15 +334,7 @@ class ApiClient {
         rawList = (response.data['data'] as List).cast<Map<String, dynamic>>();
       }
 
-      // Client-side filter fallback (just in case API returns mixed results)
-      // The sample response shows 'grade_level': 'Middle School' or 'Elementary School'
-      final filteredList = rawList.where((item) {
-        // Try both 'grade' (standard Team model) and 'grade_level' (API param/possible return)
-        final g = item['grade'] ?? item['grade_level'];
-        return g == gradeLevel;
-      }).toList();
-
-      return filteredList.map((json) => Team.fromJson(json)).toList();
+      return rawList.map((json) => Team.fromJson(json)).toList();
     } catch (e) {
       return [];
     }
