@@ -80,12 +80,16 @@ class EventFilters {
 class EventsListState {
   final List<DateTime> weeks;
   final Map<int, List<Event>> weekCache; // Key is index in `weeks`
+  final List<int> populatedWeekIndices;
+  final List<String> availableCountries;
   final EventFilters filters;
   final bool isIndexing;
 
   const EventsListState({
     this.weeks = const [],
     this.weekCache = const {},
+    this.populatedWeekIndices = const [],
+    this.availableCountries = const [],
     this.filters = const EventFilters(),
     this.isIndexing = false,
   });
@@ -93,12 +97,16 @@ class EventsListState {
   EventsListState copyWith({
     List<DateTime>? weeks,
     Map<int, List<Event>>? weekCache,
+    List<int>? populatedWeekIndices,
+    List<String>? availableCountries,
     EventFilters? filters,
     bool? isIndexing,
   }) {
     return EventsListState(
       weeks: weeks ?? this.weeks,
       weekCache: weekCache ?? this.weekCache,
+      populatedWeekIndices: populatedWeekIndices ?? this.populatedWeekIndices,
+      availableCountries: availableCountries ?? this.availableCountries,
       filters: filters ?? this.filters,
       isIndexing: isIndexing ?? this.isIndexing,
     );
@@ -116,6 +124,10 @@ class EventsListController extends StateNotifier<EventsListState> {
   // Using a simpler approach than `Timer` to avoid import conflicts
   // or disposal issues. We might just delay search application.
 
+  int _currentComputeId = 0;
+  List<String> _cachedAvailableCountries = [];
+  bool _countriesComputed = false;
+
   EventsListController(this._ref) : super(const EventsListState()) {
     _initializeWeeks();
     // Listen to repository changes
@@ -126,7 +138,8 @@ class EventsListController extends StateNotifier<EventsListState> {
   }
 
   void _onDataChanged() {
-    // Recompute when underlying data changes
+    // Underlying data changed, reset country cache
+    _countriesComputed = false;
     _recompute();
   }
 
@@ -188,41 +201,65 @@ class EventsListController extends StateNotifier<EventsListState> {
     _recompute();
   }
 
+  /// Reset all filters.
+  void clearFilters() {
+    const defaultFilters = EventFilters();
+    if (state.filters == defaultFilters) return;
+    state = state.copyWith(filters: defaultFilters);
+    _recompute();
+  }
+
   // ---------------------------------------------------------------------------
   // Computation Logic
   // ---------------------------------------------------------------------------
 
   Future<void> _recompute() async {
+    final computeId = ++_currentComputeId;
+
     // Yield to let UI render loading state first
     await Future.microtask(() {});
+    if (computeId != _currentComputeId) return;
 
     // 1. Get all events
     final eventsRepo = _ref.read(eventsRepositoryProvider);
     final allEvents = eventsRepo.getAllEvents(); // Synchronous Hive read
 
     // 2. Prepare params for isolation
+    // Optimization: Compute countries only once per data change
+    if (!_countriesComputed) {
+      _cachedAvailableCountries = allEvents
+          .map((e) => e.country)
+          .whereType<String>()
+          .toSet()
+          .toList()
+        ..sort();
+      _countriesComputed = true;
+    }
+
     final params = _ComputeParams(
       allEvents: allEvents,
       weeks: state.weeks,
       filters: state.filters,
+      availableCountries: _cachedAvailableCountries,
     );
 
     // 3. Mark indexing (optional UI feedback)
     // state = state.copyWith(isIndexing: true);
 
     // 4. Compute
-    // Threshold for using isolate
-    Map<int, List<Event>> resultMap;
+    _ComputeResult result;
     if (allEvents.length > 500) {
-      resultMap = await compute(_buildWeekCacheIsolated, params);
+      result = await compute(_buildWeekCacheIsolated, params);
     } else {
-      resultMap = _buildWeekCacheIsolated(params);
+      result = _buildWeekCacheIsolated(params);
     }
 
     // 5. Update state
-    if (mounted) {
+    if (mounted && computeId == _currentComputeId) {
       state = state.copyWith(
-        weekCache: resultMap,
+        weekCache: result.weekCache,
+        populatedWeekIndices: result.populatedWeekIndices,
+        availableCountries: _cachedAvailableCountries,
         isIndexing: false,
       );
     }
@@ -238,21 +275,35 @@ class _ComputeParams {
   final List<Event> allEvents;
   final List<DateTime> weeks;
   final EventFilters filters;
+  final List<String> availableCountries;
 
   const _ComputeParams({
     required this.allEvents,
     required this.weeks,
     required this.filters,
+    required this.availableCountries,
   });
 }
 
-Map<int, List<Event>> _buildWeekCacheIsolated(_ComputeParams params) {
+class _ComputeResult {
+  final Map<int, List<Event>> weekCache;
+  final List<int> populatedWeekIndices;
+
+  const _ComputeResult({
+    required this.weekCache,
+    required this.populatedWeekIndices,
+  });
+}
+
+_ComputeResult _buildWeekCacheIsolated(_ComputeParams params) {
   final cache = <int, List<Event>>{};
   final searchQuery = params.filters.searchQuery.toLowerCase();
   final countries = params.filters.countries;
   final regions = params.filters.regions;
   final grades = params.filters.grades;
   final types = params.filters.types;
+
+  // Countries are now passed in for consistency, no need to recompute here.
 
   // Pre-filter events
   final filteredEvents = params.allEvents.where((e) {
@@ -331,13 +382,24 @@ Map<int, List<Event>> _buildWeekCacheIsolated(_ComputeParams params) {
   }).toList();
 
   // Group by week
+  // Optimization: Pre-calculate week boundaries to avoid redundant DateTime creations
+  final weekBoundaries = params.weeks
+      .map((wStart) => (
+            start: wStart.millisecondsSinceEpoch,
+            end: wStart
+                .add(const Duration(days: 6, hours: 23, minutes: 59))
+                .millisecondsSinceEpoch,
+          ))
+      .toList();
+
   for (final event in filteredEvents) {
-    final eDate = DateTime(
-        event.startDate.year, event.startDate.month, event.startDate.day);
-    for (int i = 0; i < params.weeks.length; i++) {
-      final wStart = params.weeks[i];
-      final wEnd = wStart.add(const Duration(days: 6));
-      if (!eDate.isBefore(wStart) && !eDate.isAfter(wEnd)) {
+    final eMillis = event.startDate.millisecondsSinceEpoch;
+
+    // Binary search could be used if weekBoundaries was sorted and large,
+    // but we'll stick to a faster linear loop for now.
+    for (int i = 0; i < weekBoundaries.length; i++) {
+      final boundary = weekBoundaries[i];
+      if (eMillis >= boundary.start && eMillis <= boundary.end) {
         cache.putIfAbsent(i, () => []).add(event);
         break;
       }
@@ -349,7 +411,10 @@ Map<int, List<Event>> _buildWeekCacheIsolated(_ComputeParams params) {
     list.sort((a, b) => b.startDate.compareTo(a.startDate));
   }
 
-  return cache;
+  return _ComputeResult(
+    weekCache: cache,
+    populatedWeekIndices: cache.keys.toList()..sort(),
+  );
 }
 
 // -----------------------------------------------------------------------------

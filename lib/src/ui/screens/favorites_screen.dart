@@ -54,7 +54,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   final Map<String, bool> _loading = {};
 
   bool _initialFetchDone = false;
-  bool _sortAlphabetically = false;
 
   @override
   void didChangeDependencies() {
@@ -229,8 +228,11 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     final favoritesService = ref.watch(favoritesServiceProvider);
+    final settings = ref.watch(settingsProvider);
+    final sortAlphabetically = settings.sortFavoritesByAlpha;
+
     final favTeams = List<String>.from(favoritesService.getFavoriteTeams());
-    if (_sortAlphabetically) {
+    if (sortAlphabetically) {
       favTeams.sort(_compareTeamNumbers);
     }
     final favEventsSkus = favoritesService.getFavoriteEvents();
@@ -267,9 +269,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                           padding: EdgeInsets.zero,
                           minSize: 0,
                           onPressed: () {
-                            setState(() {
-                              _sortAlphabetically = !_sortAlphabetically;
-                            });
+                            ref
+                                .read(settingsProvider.notifier)
+                                .setSortFavoritesByAlpha(!sortAlphabetically);
                           },
                           child: Row(
                             children: [
@@ -277,7 +279,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                                 'Sort A-Z',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: _sortAlphabetically
+                                  color: sortAlphabetically
                                       ? _primaryColor
                                       : CupertinoColors.secondaryLabel
                                           .resolveFrom(context),
@@ -288,7 +290,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                               Icon(
                                 CupertinoIcons.sort_down,
                                 size: 14,
-                                color: _sortAlphabetically
+                                color: sortAlphabetically
                                     ? _primaryColor
                                     : CupertinoColors.secondaryLabel
                                         .resolveFrom(context),

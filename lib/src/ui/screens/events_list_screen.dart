@@ -431,19 +431,17 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      if (index >= weeks.length) return null;
+                      final populatedIndices = listState.populatedWeekIndices;
+                      if (index >= populatedIndices.length) return null;
 
-                      // Only show weeks that have matching events
-                      if (!displayCache.containsKey(index))
-                        return const SizedBox.shrink();
-
-                      final weekStart = weeks[index];
-                      final weekEvents = displayCache[index] ?? [];
+                      final weekIndex = populatedIndices[index];
+                      final weekStart = weeks[weekIndex];
+                      final weekEvents = displayCache[weekIndex] ?? [];
 
                       return _buildWeekSectionWidget(
-                          context, weekStart, weekEvents, index);
+                          context, weekStart, weekEvents, weekIndex);
                     },
-                    childCount: weeks.length,
+                    childCount: listState.populatedWeekIndices.length,
                   ),
                 ),
               ],
@@ -504,14 +502,18 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                     ? const BorderRadius.vertical(top: Radius.circular(12))
                     : BorderRadius.circular(12),
                 border: isCurrentWeek
-                    ? Border.all(color: primaryColor.withOpacity(0.4), width: 1)
+                    ? Border.all(
+                        color: primaryColor.withValues(alpha: 0.4), width: 1)
                     : null,
               ),
-              child: IntrinsicHeight(
-                child: Row(
-                  children: [
-                    // Accent bar
-                    Container(
+              child: Stack(
+                children: [
+                  // Accent bar
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
                       width: 4,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -530,103 +532,101 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                         ),
                       ),
                     ),
-                    // Content
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 14),
-                        child: Row(
-                          children: [
-                            Icon(
-                              CupertinoIcons.calendar,
-                              size: 20,
-                              color: isCurrentWeek
-                                  ? primaryColor
-                                  : CupertinoColors.systemGrey,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 4), // Space for accent bar
+                        Icon(
+                          CupertinoIcons.calendar,
+                          size: 20,
+                          color: isCurrentWeek
+                              ? primaryColor
+                              : CupertinoColors.systemGrey,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        '${weekStart.month}/${weekStart.day} – ${weekEnd.month}/${weekEnd.day}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 16,
-                                          color: isCurrentWeek
-                                              ? CupertinoColors.label
-                                                  .resolveFrom(context)
-                                              : CupertinoColors.secondaryLabel
-                                                  .resolveFrom(context),
-                                          letterSpacing: -0.3,
-                                        ),
-                                      ),
-                                      if (isCurrentWeek) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                primaryColor.withOpacity(0.15),
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: Text('NOW',
-                                              style: TextStyle(
-                                                  fontSize: 9,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: primaryColor,
-                                                  letterSpacing: 0.5)),
-                                        ),
-                                      ],
-                                    ],
+                                  Text(
+                                    '${weekStart.month}/${weekStart.day} – ${weekEnd.month}/${weekEnd.day}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                      color: isCurrentWeek
+                                          ? CupertinoColors.label
+                                              .resolveFrom(context)
+                                          : CupertinoColors.secondaryLabel
+                                              .resolveFrom(context),
+                                      letterSpacing: -0.3,
+                                    ),
                                   ),
+                                  if (isCurrentWeek) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: primaryColor.withValues(
+                                            alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text('NOW',
+                                          style: TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w800,
+                                              color: primaryColor,
+                                              letterSpacing: 0.5)),
+                                    ),
+                                  ],
                                 ],
                               ),
-                            ),
-                            // Event count badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isCurrentWeek
-                                    ? primaryColor.withOpacity(0.15)
-                                    : CupertinoColors
-                                        .tertiarySystemGroupedBackground
-                                        .resolveFrom(context),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '${weekEvents.length}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 14,
-                                  color: isCurrentWeek
-                                      ? primaryColor
-                                      : CupertinoColors.secondaryLabel
-                                          .resolveFrom(context),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              isExpanded
-                                  ? CupertinoIcons.chevron_down
-                                  : CupertinoIcons.chevron_right,
-                              size: 13,
-                              color: CupertinoColors.systemGrey
-                                  .resolveFrom(context),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
+                        // Event count badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isCurrentWeek
+                                ? primaryColor.withOpacity(0.15)
+                                : CupertinoColors
+                                    .tertiarySystemGroupedBackground
+                                    .resolveFrom(context),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${weekEvents.length}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                              color: isCurrentWeek
+                                  ? primaryColor
+                                  : CupertinoColors.secondaryLabel
+                                      .resolveFrom(context),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          isExpanded
+                              ? CupertinoIcons.chevron_down
+                              : CupertinoIcons.chevron_right,
+                          size: 13,
+                          color:
+                              CupertinoColors.systemGrey.resolveFrom(context),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -727,20 +727,11 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
   }
 
   Widget _buildFilterBar(BuildContext context, EventFilters filters) {
-    // We need to fetch unique countries/regions to show in pickers.
-    // Ideally this is also computed in the background, but for now we can
-    // read from the repo briefly or add it to the state.
-    // A quick way is to just grab all events from repo once here.
-    final allEvents = ref.read(eventsRepositoryProvider).getAllEvents();
+    // We use the unique countries computed in the background isolate.
+    final listState = ref.watch(eventsListControllerProvider);
+    final countries = listState.availableCountries;
 
-    final countries = allEvents
-        .map((e) => e.country)
-        .whereType<String>()
-        .toSet()
-        .toList()
-      ..sort();
-
-    String _getLabel(String base, List<String> selected) {
+    String computeLabel(String base, List<String> selected) {
       if (selected.isEmpty) return base;
       String label = selected.first;
       if (selected.length > 1) {
@@ -751,12 +742,44 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
 
     final controller = ref.read(eventsListControllerProvider.notifier);
 
+    final isAnyFilterApplied = filters.searchQuery.isNotEmpty ||
+        filters.countries.isNotEmpty ||
+        filters.regions.isNotEmpty ||
+        filters.grades.isNotEmpty ||
+        filters.types.isNotEmpty;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
+          // Clear Button
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: GestureDetector(
+              onTap: () {
+                _searchController.clear();
+                controller.clearFilters();
+              },
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isAnyFilterApplied
+                      ? CupertinoColors.systemRed.withOpacity(0.1)
+                      : CupertinoColors.systemGrey5.resolveFrom(context),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  CupertinoIcons.xmark,
+                  size: 14,
+                  color: isAnyFilterApplied
+                      ? CupertinoColors.systemRed
+                      : CupertinoColors.systemGrey,
+                ),
+              ),
+            ),
+          ),
           _buildFilterChip(
-            label: _getLabel('Countries', filters.countries),
+            label: computeLabel('Countries', filters.countries),
             isSelected: filters.countries.isNotEmpty,
             onTap: () => _showAlphabeticalPicker(
               title: 'Country',
@@ -771,21 +794,12 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
             ),
           ),
           _buildFilterChip(
-            label: _getLabel('Regions', filters.regions),
+            label: computeLabel('Regions', filters.regions),
             isSelected: filters.regions.isNotEmpty,
             onTap: () => _showAlphabeticalPicker(
               title: 'Region',
               options:
                   _allEventRegions, // Use the constant as base, or `regions`
-              // Using `regions` (dynamically filtered) is better UX but `_allEventRegions` (static)
-              // was used in original code for the picker options?
-              // Original code used `_allEventRegions` for the options passed to picker.
-              // Let's stick to `_allEventRegions` to preserve behavior,
-              // OR use the dynamic `regions` if we are sure.
-              // The original thought was:
-              // `options: _allEventRegions` in original code.
-              // But `final regions` variable was computed in build.
-              // Let's use `_allEventRegions` as options to match org behavior.
               currentValues: filters.regions,
               onSelected: (vals) {
                 controller.setFilters(filters.copyWith(regions: vals ?? []));
@@ -793,7 +807,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
             ),
           ),
           _buildFilterChip(
-            label: _getLabel('Grades', filters.grades),
+            label: computeLabel('Grades', filters.grades),
             isSelected: filters.grades.isNotEmpty,
             onTap: () => _showAlphabeticalPicker(
               title: 'Grade',
@@ -807,7 +821,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
             ),
           ),
           _buildFilterChip(
-            label: _getLabel('Type', filters.types),
+            label: computeLabel('Type', filters.types),
             isSelected: filters.types.isNotEmpty,
             onTap: () => _showAlphabeticalPicker(
               title: 'Type',

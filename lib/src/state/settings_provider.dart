@@ -9,12 +9,14 @@ class SettingsState {
   final int primarySeasonId;
   final String? robotEventsApiKey;
   final String? roboStemApiKey;
+  final bool sortFavoritesByAlpha;
 
   SettingsState({
     required this.themeMode,
     required this.primarySeasonId,
     this.robotEventsApiKey,
     this.roboStemApiKey,
+    this.sortFavoritesByAlpha = false,
   });
 
   SettingsState copyWith({
@@ -22,12 +24,14 @@ class SettingsState {
     int? primarySeasonId,
     String? robotEventsApiKey,
     String? roboStemApiKey,
+    bool? sortFavoritesByAlpha,
   }) {
     return SettingsState(
       themeMode: themeMode ?? this.themeMode,
       primarySeasonId: primarySeasonId ?? this.primarySeasonId,
       robotEventsApiKey: robotEventsApiKey ?? this.robotEventsApiKey,
       roboStemApiKey: roboStemApiKey ?? this.roboStemApiKey,
+      sortFavoritesByAlpha: sortFavoritesByAlpha ?? this.sortFavoritesByAlpha,
     );
   }
 }
@@ -49,6 +53,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         _settingsBox.get('theme_mode', defaultValue: ThemeMode.system.index);
     final seasonId = _settingsBox.get('season_id',
         defaultValue: AppConstants.currentSeasonId);
+    final sortAlpha =
+        _settingsBox.get('sort_favorites_alpha', defaultValue: false);
 
     final reKey = await _secureStorage.getApiKey();
     final rsKey = await _secureStorage.getRoboStemApiKey();
@@ -58,6 +64,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       primarySeasonId: seasonId,
       robotEventsApiKey: reKey,
       roboStemApiKey: rsKey,
+      sortFavoritesByAlpha: sortAlpha,
     );
   }
 
@@ -89,5 +96,10 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       await _secureStorage.saveRoboStemApiKey(key);
       state = state.copyWith(roboStemApiKey: key);
     }
+  }
+
+  Future<void> setSortFavoritesByAlpha(bool value) async {
+    await _settingsBox.put('sort_favorites_alpha', value);
+    state = state.copyWith(sortFavoritesByAlpha: value);
   }
 }

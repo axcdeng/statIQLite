@@ -66,6 +66,7 @@ class Team {
     final statiqRaw = json['statiq'];
     final statiq =
         statiqRaw is Map ? Map<String, dynamic>.from(statiqRaw) : null;
+    final teamwork = statiq?['teamwork'] as num?;
     final perf = statiq?['performance'] as num?;
 
     // Robust ID parsing:
@@ -92,7 +93,7 @@ class Team {
       robotName: json['robot_name'] as String?,
       eventId: 0,
       location: locationStr,
-      trueskill: perf?.toDouble(),
+      trueskill: (teamwork ?? perf)?.toDouble(),
       statiq: statiq,
       grade: json['grade'] as String?,
     );

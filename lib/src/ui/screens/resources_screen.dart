@@ -51,12 +51,12 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                       for (int i = 0; i < _tabLabels.length; i++)
                         i: Padding(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
+                              horizontal: 8, vertical: 8),
                           child: Text(
                             _tabLabels[i],
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              fontSize: 13,
+                              fontSize: 12,
                               color: _selectedTab == i
                                   ? Theme.of(context).colorScheme.onPrimary
                                   : CupertinoColors.secondaryLabel

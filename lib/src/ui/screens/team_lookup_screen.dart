@@ -314,7 +314,8 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
     // Stats
     final worldRank = _worldSkillsData?['rank'];
     final worldScore = _worldSkillsData?['score'];
-    final trueskill = _team!.statiq?['performance']; // "TrueSkill"
+    final trueskill = _team!.statiq?['teamwork'] ??
+        _team!.statiq?['performance']; // "TrueSkill"
     final epa = _team!.statiq?['epa'];
     // Grade label: "MS" or "ES"
     final gradeLabel = _team!.grade == 'Elementary School'

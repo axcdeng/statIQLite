@@ -8,11 +8,13 @@ import 'package:path_provider/path_provider.dart';
 class PDFViewerScreen extends StatefulWidget {
   final String filePath;
   final String title;
+  final int initialPage;
 
   const PDFViewerScreen({
     super.key,
     required this.filePath,
     required this.title,
+    this.initialPage = 0,
   });
 
   @override
@@ -21,9 +23,15 @@ class PDFViewerScreen extends StatefulWidget {
 
 class _PDFViewerScreenState extends State<PDFViewerScreen> {
   int? pages = 0;
-  int? currentPage = 0;
+  late int? currentPage;
   bool isReady = false;
   String errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    currentPage = widget.initialPage;
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,26 +1,23 @@
-import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:roboscout_iq/src/state/timer_provider.dart';
 
-class MatchTimerTab extends StatefulWidget {
+class MatchTimerTab extends ConsumerStatefulWidget {
   const MatchTimerTab({super.key});
 
   @override
-  State<MatchTimerTab> createState() => _MatchTimerTabState();
+  ConsumerState<MatchTimerTab> createState() => _MatchTimerTabState();
 }
 
-class _MatchTimerTabState extends State<MatchTimerTab>
+class _MatchTimerTabState extends ConsumerState<MatchTimerTab>
     with TickerProviderStateMixin {
-  static const int _defaultDuration = 60; // VEX IQ match = 60 seconds
-
-  final int _totalSeconds = _defaultDuration;
-  int _remainingSeconds = _defaultDuration;
-  Timer? _timer;
-  bool _isRunning = false;
-  bool _isFullscreen = false;
-
+  static const int _totalSeconds = 60;
+  late final AudioPlayer _audioPlayer;
   late AnimationController _pulseController;
 
   @override
@@ -30,57 +27,22 @@ class _MatchTimerTabState extends State<MatchTimerTab>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
+    _audioPlayer = AudioPlayer();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     _pulseController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
-  void _start() {
-    if (_remainingSeconds <= 0) return;
-    setState(() => _isRunning = true);
-    _playSystemSound(); // Start sound
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _remainingSeconds--;
-        // Warning at 10 seconds
-        if (_remainingSeconds == 10) {
-          _pulseController.repeat(reverse: true);
-          _playSystemSound();
-        }
-        // Driver switch at 30 seconds
-        if (_remainingSeconds == 30) {
-          _playSystemSound();
-        }
-        if (_remainingSeconds <= 0) {
-          _remainingSeconds = 0;
-          _isRunning = false;
-          _timer?.cancel();
-          _pulseController.stop();
-          _pulseController.value = 0;
-          _playSystemSound(); // End sound
-        }
-      });
-    });
-  }
-
-  void _pause() {
-    _timer?.cancel();
-    setState(() => _isRunning = false);
-    _pulseController.stop();
-  }
-
-  void _reset() {
-    _timer?.cancel();
-    _pulseController.stop();
-    _pulseController.value = 0;
-    setState(() {
-      _remainingSeconds = _totalSeconds;
-      _isRunning = false;
-    });
+  void _playLocalSound(String fileName) async {
+    try {
+      await _audioPlayer.play(AssetSource('audio/$fileName'));
+    } catch (e) {
+      print('Error playing sound $fileName: $e');
+    }
   }
 
   void _playSystemSound() {
@@ -89,152 +51,114 @@ class _MatchTimerTabState extends State<MatchTimerTab>
   }
 
   void _toggleFullscreen() {
-    setState(() => _isFullscreen = !_isFullscreen);
-    if (_isFullscreen) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    } else {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    }
+    Navigator.of(context, rootNavigator: true).push(
+      CupertinoPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => const FullscreenTimerPage(),
+      ),
+    );
   }
 
-  Color get _timerColor {
-    final fraction = _remainingSeconds / _totalSeconds;
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(timerProvider);
+    final notifier = ref.read(timerProvider.notifier);
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    // Listen for sounds at the UI level
+    ref.listen(timerProvider, (previous, next) {
+      if (next.isCountingDown &&
+          (previous?.countdownSeconds ?? 0) != next.countdownSeconds) {
+        _playSystemSound();
+      }
+      if (next.isRunning && !(previous?.isRunning ?? false)) {
+        _playLocalSound('match_start.mp3');
+      }
+      if (next.remainingSeconds == 35 &&
+          (previous?.remainingSeconds ?? 0) == 36) {
+        _playLocalSound('driver_switch.mp3');
+      }
+      if (next.remainingSeconds == 25 &&
+          (previous?.remainingSeconds ?? 0) == 26) {
+        _playLocalSound('driver_switch.mp3');
+      }
+      if (next.remainingSeconds == 0 &&
+          (previous?.remainingSeconds ?? 0) == 1) {
+        _playLocalSound('match_end.mp3');
+      }
+      if (next.remainingSeconds <= 10 &&
+          next.remainingSeconds < (previous?.remainingSeconds ?? 0)) {
+        _playSystemSound();
+      }
+    });
+
+    if (state.remainingSeconds == 10 && state.isRunning) {
+      if (!_pulseController.isAnimating) {
+        _pulseController.repeat(reverse: true);
+      }
+    } else if (!state.isRunning || state.remainingSeconds > 10) {
+      _pulseController.stop();
+      _pulseController.value = 0;
+    }
+
+    return Column(
+      children: [
+        const Spacer(),
+        // Timer Circle
+        Expanded(
+          flex: 3,
+          child: Center(child: _buildTimerCircle(primaryColor, state, context)),
+        ),
+        const Spacer(),
+
+        // Controls
+        Padding(
+          padding: const EdgeInsets.only(bottom: 48),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildControlButton(
+                icon: CupertinoIcons.arrow_counterclockwise,
+                label: 'Reset',
+                onTap: notifier.reset,
+                color: CupertinoColors.systemGrey,
+              ),
+              const SizedBox(width: 32),
+              _buildPlayButton(primaryColor, state, notifier),
+              const SizedBox(width: 32),
+              _buildControlButton(
+                icon: CupertinoIcons.rotate_right,
+                label: 'Full',
+                onTap: _toggleFullscreen,
+                color: CupertinoColors.systemGrey,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _timeString(TimerState state) {
+    if (state.isCountingDown) return '${state.countdownSeconds}';
+    final m = (state.remainingSeconds ~/ 60).toString().padLeft(1, '0');
+    final s = (state.remainingSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  Color _timerColor(TimerState state, BuildContext context) {
+    final fraction = state.remainingSeconds / _totalSeconds;
     if (fraction > 0.5) return Theme.of(context).colorScheme.primary;
     if (fraction > 0.17) return CupertinoColors.activeOrange;
     return CupertinoColors.destructiveRed;
   }
 
-  String get _timeString {
-    final m = (_remainingSeconds ~/ 60).toString().padLeft(1, '0');
-    final s = (_remainingSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-
-    return OrientationBuilder(
-      builder: (context, orientation) {
-        final isLandscape = orientation == Orientation.landscape;
-
-        if (isLandscape || _isFullscreen) {
-          return Scaffold(
-            backgroundColor: CupertinoColors.systemBackground,
-            body: SafeArea(
-              child: Row(
-                children: [
-                  // Left side: Big Timer
-                  Expanded(
-                    flex: 2,
-                    child: Center(
-                      child: _buildBigTimerText(),
-                    ),
-                  ),
-                  // Right side: Controls Stacked
-                  Container(
-                    width: 140,
-                    color: Colors.transparent, // Fix weird background
-                    padding: EdgeInsets
-                        .zero, // Remove vertical padding to save space
-                    child: Center(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildControlButton(
-                              icon: CupertinoIcons.arrow_counterclockwise,
-                              label: 'Reset',
-                              onTap: _reset,
-                              color: CupertinoColors.systemGrey,
-                            ),
-                            const SizedBox(height: 16), // Reduced spacing
-                            _buildPlayButton(primaryColor),
-                            const SizedBox(height: 16), // Reduced spacing
-                            _buildControlButton(
-                              icon: isLandscape
-                                  ? CupertinoIcons.fullscreen_exit
-                                  : CupertinoIcons.fullscreen,
-                              label: isLandscape ? 'Exit' : 'Full',
-                              onTap: _toggleFullscreen,
-                              color: CupertinoColors.systemGrey,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        // Portrait Layout
-        return Column(
-          children: [
-            const Spacer(),
-            // Timer Circle
-            Expanded(
-              flex: 3,
-              child: Center(child: _buildTimerCircle(primaryColor)),
-            ),
-            const Spacer(),
-
-            // Controls
-            Padding(
-              padding: const EdgeInsets.only(bottom: 48),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildControlButton(
-                    icon: CupertinoIcons.arrow_counterclockwise,
-                    label: 'Reset',
-                    onTap: _reset,
-                    color: CupertinoColors.systemGrey,
-                  ),
-                  const SizedBox(width: 32),
-                  _buildPlayButton(primaryColor),
-                  const SizedBox(width: 32),
-                  _buildControlButton(
-                    icon: CupertinoIcons.fullscreen,
-                    label: 'Full',
-                    onTap: _toggleFullscreen,
-                    color: CupertinoColors.systemGrey,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildBigTimerText() {
-    return FittedBox(
-      fit: BoxFit.contain,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Text(
-          _timeString,
-          style: TextStyle(
-            color: _timerColor,
-            fontSize: 400, // Massive font size to force FittedBox to fill space
-            fontWeight: FontWeight.w900,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimerCircle(Color primaryColor) {
-    // In portrait, keep the circle look but simpler
+  Widget _buildTimerCircle(
+      Color primaryColor, TimerState state, BuildContext context) {
     return AnimatedBuilder(
       animation: _pulseController,
       builder: (context, child) {
-        final pulseScale = _remainingSeconds <= 10 && _isRunning
+        final pulseScale = state.remainingSeconds <= 10 && state.isRunning
             ? 1.0 + (_pulseController.value * 0.03)
             : 1.0;
 
@@ -244,50 +168,69 @@ class _MatchTimerTabState extends State<MatchTimerTab>
             aspectRatio: 1,
             child: CustomPaint(
               painter: _CircleTimerPainter(
-                progress: _remainingSeconds / _totalSeconds,
-                color: _timerColor,
+                progress: state.isCountingDown
+                    ? state.countdownSeconds / 3
+                    : state.remainingSeconds / _totalSeconds,
+                color: _timerColor(state, context),
                 backgroundColor: CupertinoColors.tertiarySystemFill,
               ),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    if (state.isCountingDown)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'Starting in...',
+                          style: TextStyle(
+                            color: CupertinoColors.secondaryLabel
+                                .resolveFrom(context),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     Text(
-                      _timeString,
+                      _timeString(state),
                       style: TextStyle(
-                        color: _timerColor,
-                        fontSize: 80,
+                        color: _timerColor(state, context),
+                        fontSize: state.isCountingDown ? 120 : 80,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -2,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
-                    if (_isRunning &&
-                        _remainingSeconds <= 30 &&
-                        _remainingSeconds > 0)
+                    if (state.isRunning &&
+                        state.remainingSeconds <= 35 &&
+                        state.remainingSeconds > 0)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          _remainingSeconds <= 10
+                          state.remainingSeconds <= 10
                               ? 'FINAL SECONDS'
-                              : 'DRIVER 2',
+                              : state.remainingSeconds > 25
+                                  ? 'DRIVER SWITCH'
+                                  : 'DRIVER 2',
                           style: TextStyle(
-                            color: _timerColor.withAlpha((0.8 * 255)
-                                .round()), // Changed .withOpacity(0.8) to .withAlpha
+                            color: _timerColor(state, context)
+                                .withAlpha((0.8 * 255).round()),
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.0,
                           ),
                         ),
                       )
-                    else if (!_isRunning && _remainingSeconds == 0)
+                    else if (!state.isRunning &&
+                        !state.isCountingDown &&
+                        state.remainingSeconds == 0)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
                           'MATCH OVER',
                           style: TextStyle(
-                            color: _timerColor.withAlpha((0.8 * 255)
-                                .round()), // Changed .withOpacity(0.8) to .withAlpha
+                            color: _timerColor(state, context)
+                                .withAlpha((0.8 * 255).round()),
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.0,
@@ -304,29 +247,30 @@ class _MatchTimerTabState extends State<MatchTimerTab>
     );
   }
 
-  Widget _buildPlayButton(Color primaryColor) {
+  Widget _buildPlayButton(
+      Color primaryColor, TimerState state, TimerNotifier notifier) {
+    final isRunning = state.isRunning || state.isCountingDown;
     return GestureDetector(
-      onTap: _isRunning ? _pause : _start,
+      onTap: isRunning ? notifier.pause : notifier.start,
       child: Container(
         width: 80,
         height: 80,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _isRunning ? CupertinoColors.activeOrange : primaryColor,
+          color: isRunning ? CupertinoColors.activeOrange : primaryColor,
           boxShadow: [
             BoxShadow(
-              color: (_isRunning ? CupertinoColors.activeOrange : primaryColor)
-                  .withAlpha((0.4 * 255)
-                      .round()), // Changed .withOpacity(0.4) to .withAlpha
-              blurRadius: 16,
-              spreadRadius: 2,
+              color: (isRunning ? CupertinoColors.activeOrange : primaryColor)
+                  .withAlpha((0.2 * 255).round()),
+              blurRadius: 12,
+              spreadRadius: 1,
             ),
           ],
         ),
         child: Icon(
-          _isRunning ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
+          isRunning ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
           color: Colors.white,
-          size: 44, // Slightly larger icon
+          size: 44,
         ),
       ),
     );
@@ -357,6 +301,237 @@ class _MatchTimerTabState extends State<MatchTimerTab>
               style: TextStyle(
                   color: color, fontSize: 11, fontWeight: FontWeight.w500)),
         ],
+      ),
+    );
+  }
+}
+
+class FullscreenTimerPage extends ConsumerStatefulWidget {
+  const FullscreenTimerPage({super.key});
+
+  @override
+  ConsumerState<FullscreenTimerPage> createState() =>
+      _FullscreenTimerPageState();
+}
+
+class _FullscreenTimerPageState extends ConsumerState<FullscreenTimerPage> {
+  late final AudioPlayer _audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  void _playLocalSound(String fileName) async {
+    try {
+      await _audioPlayer.play(AssetSource('audio/$fileName'));
+    } catch (e) {
+      print('Error playing sound $fileName: $e');
+    }
+  }
+
+  void _playSystemSound() {
+    SystemSound.play(SystemSoundType.click);
+    HapticFeedback.mediumImpact();
+  }
+
+  String _timeString(TimerState state) {
+    if (state.isCountingDown) return '${state.countdownSeconds}';
+    final m = (state.remainingSeconds ~/ 60).toString().padLeft(1, '0');
+    final s = (state.remainingSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  Color _timerColor(TimerState state) {
+    if (state.remainingSeconds > 30) {
+      return Theme.of(context).colorScheme.primary;
+    }
+    if (state.remainingSeconds > 10) return CupertinoColors.activeOrange;
+    return CupertinoColors.destructiveRed;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(timerProvider);
+    final notifier = ref.read(timerProvider.notifier);
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    // Same sound listener logic
+    ref.listen(timerProvider, (previous, next) {
+      // Logic to play sounds based on state transitions
+      if (next.isCountingDown &&
+          (previous?.countdownSeconds ?? 0) != next.countdownSeconds) {
+        _playSystemSound();
+      }
+      if (next.isRunning && !(previous?.isRunning ?? false)) {
+        _playLocalSound('match_start.mp3');
+      }
+      if (next.remainingSeconds == 35 &&
+          (previous?.remainingSeconds ?? 0) == 36) {
+        _playLocalSound('driver_switch.mp3');
+      }
+      if (next.remainingSeconds == 25 &&
+          (previous?.remainingSeconds ?? 0) == 26) {
+        _playLocalSound('driver_switch.mp3');
+      }
+      if (next.remainingSeconds == 0 &&
+          (previous?.remainingSeconds ?? 0) == 1) {
+        _playLocalSound('match_end.mp3');
+      }
+      if (next.remainingSeconds <= 10 &&
+          next.remainingSeconds < (previous?.remainingSeconds ?? 0)) {
+        _playSystemSound();
+      }
+    });
+
+    return Scaffold(
+      backgroundColor: CupertinoColors.black,
+      body: SafeArea(
+        child: Row(
+          children: [
+            // Big Timer
+            Expanded(
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (state.isCountingDown)
+                          Text(
+                            'Starting in...',
+                            style: TextStyle(
+                              color: CupertinoColors.systemGrey,
+                              fontSize: 40,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        Text(
+                          _timeString(state),
+                          style: TextStyle(
+                            color: _timerColor(state),
+                            fontSize: 400,
+                            fontWeight: FontWeight.w900,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        if (state.isRunning &&
+                            state.remainingSeconds <= 35 &&
+                            state.remainingSeconds > 0)
+                          Text(
+                            state.remainingSeconds <= 10
+                                ? 'FINAL SECONDS'
+                                : state.remainingSeconds > 25
+                                    ? 'DRIVER SWITCH'
+                                    : 'DRIVER 2',
+                            style: TextStyle(
+                              color: _timerColor(state).withAlpha(200),
+                              fontSize: 50,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 2.0,
+                            ),
+                          )
+                        else if (!state.isRunning &&
+                            !state.isCountingDown &&
+                            state.remainingSeconds == 0)
+                          Text(
+                            'MATCH OVER',
+                            style: TextStyle(
+                              color: _timerColor(state).withAlpha(200),
+                              fontSize: 50,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 2.0,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Controls
+            Container(
+              width: 120,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildFullscreenControlButton(
+                    icon: CupertinoIcons.arrow_counterclockwise,
+                    onTap: notifier.reset,
+                    color: CupertinoColors.systemGrey,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildFullscreenPlayButton(primaryColor, state, notifier),
+                  const SizedBox(height: 24),
+                  _buildFullscreenControlButton(
+                    icon: CupertinoIcons.fullscreen_exit,
+                    onTap: () => Navigator.of(context).pop(),
+                    color: CupertinoColors.systemGrey,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullscreenPlayButton(
+      Color primaryColor, TimerState state, TimerNotifier notifier) {
+    final isRunning = state.isRunning || state.isCountingDown;
+    return GestureDetector(
+      onTap: isRunning ? notifier.pause : notifier.start,
+      child: Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isRunning ? CupertinoColors.activeOrange : primaryColor,
+        ),
+        child: Icon(
+          isRunning ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
+          color: Colors.white,
+          size: 40,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullscreenControlButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: CupertinoColors.systemGrey.withAlpha(50),
+        ),
+        child: Icon(icon, color: Colors.white, size: 28),
       ),
     );
   }
