@@ -31,8 +31,8 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
       color: Colors.transparent,
       child: CupertinoPageScaffold(
         backgroundColor: CupertinoColors.systemGroupedBackground,
-        navigationBar: CupertinoNavigationBar(
-          middle: const Text('Resources'),
+        navigationBar: const CupertinoNavigationBar(
+          middle: Text('Resources'),
         ),
         child: SafeArea(
           child: Column(

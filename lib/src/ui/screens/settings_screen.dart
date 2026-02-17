@@ -50,8 +50,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return CupertinoPageScaffold(
       backgroundColor:
           CupertinoColors.systemGroupedBackground.resolveFrom(context),
-      navigationBar: CupertinoNavigationBar(
-        middle: const Text('Settings'),
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Settings'),
       ),
       child: SafeArea(
         child: ListView(
@@ -500,7 +500,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   }
                 }
               } catch (e) {
-                print('Error opening SKU: $e');
+                // print('Error opening SKU: $e');
               }
             },
           ),

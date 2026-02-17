@@ -25,7 +25,7 @@ class EventsRepository {
     try {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      print('DEBUG basicSync: Starting. Today=$today');
+      // print('DEBUG basicSync: Starting. Today=$today');
 
       // Batch 1: Recent + Near Future (-14 days to +30 days)
       final immediateEvents = await _apiClient.getEvents(
@@ -48,8 +48,8 @@ class EventsRepository {
         seasonId: _settings.primarySeasonId,
       );
 
-      print(
-          'DEBUG basicSync: Fetched ${immediateEvents.length} immediate, ${futureEvents.length} future, ${pastEvents.length} past events.');
+      // print(
+      //     'DEBUG basicSync: Fetched ${immediateEvents.length} immediate, ${futureEvents.length} future, ${pastEvents.length} past events.');
 
       // Merge all events by ID
       final allEvents = {
@@ -59,10 +59,10 @@ class EventsRepository {
       };
 
       await _localDb.eventsBox.putAll(allEvents);
-      print(
-          'DEBUG basicSync: Stored ${allEvents.length} events in Hive. Box now has ${_localDb.eventsBox.length} entries.');
+      // print(
+      //     'DEBUG basicSync: Stored ${allEvents.length} events in Hive. Box now has ${_localDb.eventsBox.length} entries.');
     } catch (e) {
-      print('Sync failed: $e');
+      // print('Sync failed: $e');
     }
   }
 
@@ -84,7 +84,7 @@ class EventsRepository {
       await _localDb.eventsBox.put(id, event);
       return event;
     } catch (e) {
-      print('Error getting event $id: $e');
+      // print('Error getting event $id: $e');
       return null;
     }
   }
@@ -129,7 +129,7 @@ class EventsRepository {
         await _localDb.eventsBox.putAll({for (var e in remoteEvents) e.id: e});
         localEvents.addAll(remoteEvents);
       } catch (e) {
-        print('Error fetching missing events via SKUs: $e');
+        // print('Error fetching missing events via SKUs: $e');
       }
     }
 

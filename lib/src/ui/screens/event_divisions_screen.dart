@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:roboscout_iq/src/models/event_model.dart';
 import 'package:roboscout_iq/src/ui/screens/event_detail_screen.dart';
 

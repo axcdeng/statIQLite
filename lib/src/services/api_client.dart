@@ -3,15 +3,13 @@ import 'package:roboscout_iq/src/constants.dart';
 import 'package:roboscout_iq/src/models/event_model.dart';
 import 'package:roboscout_iq/src/models/match_model.dart';
 import 'package:roboscout_iq/src/models/team_model.dart';
-import 'package:roboscout_iq/src/services/secure_storage_service.dart';
 import 'package:roboscout_iq/src/state/settings_provider.dart';
 
 class ApiClient {
   final Dio _dio;
-  final SecureStorageService _secureStorage;
   final SettingsState _settings;
 
-  ApiClient(this._secureStorage, this._settings)
+  ApiClient(this._settings)
       : _dio = Dio(BaseOptions(
           baseUrl: AppConstants.robotEventsBaseUrl,
           connectTimeout: const Duration(seconds: 10),
@@ -19,17 +17,17 @@ class ApiClient {
         )) {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
-        print('REQ: ${options.method} ${options.path}');
+        // print('REQ: ${options.method} ${options.path}');
         return handler.next(options);
       },
       onResponse: (response, handler) {
-        print(
-            'RES: ${response.statusCode} ${response.requestOptions.path} (${response.data.toString().length} bytes)');
+        // print(
+        //     'RES: ${response.statusCode} ${response.requestOptions.path} (${response.data.toString().length} bytes)');
         return handler.next(response);
       },
       onError: (DioException e, handler) {
-        print(
-            'ERR: ${e.response?.statusCode} ${e.requestOptions.path} - ${e.message}');
+        // print(
+        //     'ERR: ${e.response?.statusCode} ${e.requestOptions.path} - ${e.message}');
         return handler.next(e);
       },
     ));
@@ -48,8 +46,8 @@ class ApiClient {
       final isJwt = token.startsWith('eyJ');
 
       if (isRoboStemKey || !isJwt) {
-        print(
-            'WARNING: User provided RobotEvents Key looks invalid (RoboStem key? or not JWT). Using default key.');
+        // print(
+        //     'WARNING: User provided RobotEvents Key looks invalid (RoboStem key? or not JWT). Using default key.');
         token = null; // Fallback to default
       }
     }
@@ -82,8 +80,8 @@ class ApiClient {
 
       allItems.addAll(data.cast<Map<String, dynamic>>());
 
-      print(
-          'DEBUG _fetchAllPages: page $currentPage/${lastPage ?? "?"}, got ${data.length} items (total so far: ${allItems.length})');
+      // print(
+      //     'DEBUG _fetchAllPages: page $currentPage/${lastPage ?? "?"}, got ${data.length} items (total so far: ${allItems.length})');
 
       // Stop if we've reached the last page or got no data
       if (data.isEmpty || (lastPage != null && currentPage >= lastPage)) {
@@ -92,8 +90,8 @@ class ApiClient {
       currentPage++;
     }
 
-    print(
-        'DEBUG _fetchAllPages: DONE. Total items fetched: ${allItems.length}');
+    // print(
+    //     'DEBUG _fetchAllPages: DONE. Total items fetched: ${allItems.length}');
     return allItems;
   }
 
@@ -114,8 +112,8 @@ class ApiClient {
       });
 
       final events = allItems.map((json) => Event.fromJson(json)).toList();
-      print(
-          'DEBUG getEvents: Fetched ${events.length} events for range ${from.toIso8601String()} to ${to.toIso8601String()}');
+      // print(
+      //     'DEBUG getEvents: Fetched ${events.length} events for range ${from.toIso8601String()} to ${to.toIso8601String()}');
       return events;
     } catch (e) {
       rethrow;
@@ -163,31 +161,31 @@ class ApiClient {
 
   Future<List<Map<String, dynamic>>> _getDivisions(int eventId) async {
     try {
-      print(
-          'DEBUG _getDivisions: Fetching event details for $eventId to find divisions...');
+      // print(
+      //     'DEBUG _getDivisions: Fetching event details for $eventId to find divisions...');
       final response = await _dio.get('/events/$eventId');
       final data = response.data;
 
-      print('DEBUG _getDivisions: Response status ${response.statusCode}');
+      // print('DEBUG _getDivisions: Response status ${response.statusCode}');
       if (data != null) {
         if (data is Map) {
-          print('DEBUG _getDivisions: Data keys: ${data.keys.toList()}');
+          // print('DEBUG _getDivisions: Data keys: ${data.keys.toList()}');
           if (data['divisions'] != null) {
-            print('DEBUG _getDivisions: Found divisions: ${data['divisions']}');
+            // print('DEBUG _getDivisions: Found divisions: ${data['divisions']}');
             return (data['divisions'] as List).cast<Map<String, dynamic>>();
           } else {
-            print('DEBUG _getDivisions: "divisions" key is null or missing.');
+            // print('DEBUG _getDivisions: "divisions" key is null or missing.');
           }
         } else {
-          print(
-              'DEBUG _getDivisions: Data is not a Map! Type: ${data.runtimeType}');
+          // print(
+          //     'DEBUG _getDivisions: Data is not a Map! Type: ${data.runtimeType}');
         }
       } else {
-        print('DEBUG _getDivisions: Response data is null.');
+        // print('DEBUG _getDivisions: Response data is null.');
       }
       return [];
     } catch (e) {
-      print('Error fetching event details for divisions: $e');
+      // print('Error fetching event details for divisions: $e');
       return [];
     }
   }
@@ -213,7 +211,7 @@ class ApiClient {
               allMatches
                   .addAll(matches.map((json) => MatchModel.fromJson(json)));
             } catch (e) {
-              print('Warning: Failed to fetch matches for division $divId: $e');
+              // print('Warning: Failed to fetch matches for division $divId: $e');
             }
           }
           if (allMatches.isNotEmpty) {
@@ -221,23 +219,23 @@ class ApiClient {
           }
         }
       } catch (e) {
-        print(
-            'Warning: Failed to fetch divisions checks for event $eventId: $e');
+        // print(
+        //     'Warning: Failed to fetch divisions checks for event $eventId: $e');
       }
 
       // 2. Fallback: If no matches found via divisions, try direct endpoint
       if (!divisionFetchSuccess || allMatches.isEmpty) {
-        print(
-            'DEBUG: No matches from divisions, trying direct endpoint for event $eventId');
+        // print(
+        //     'DEBUG: No matches from divisions, trying direct endpoint for event $eventId');
         try {
           final matches = await _fetchAllPages('/events/$eventId/matches', {},
               perPage: 250);
           allMatches.addAll(matches.map((json) => MatchModel.fromJson(json)));
         } catch (e) {
           if (e is DioException && e.response?.statusCode == 404) {
-            print('DEBUG: Direct matches endpoint also 404 for event $eventId');
+            // print('DEBUG: Direct matches endpoint also 404 for event $eventId');
           } else {
-            print('Error fetching direct matches: $e');
+            // print('Error fetching direct matches: $e');
           }
         }
       }
@@ -263,11 +261,11 @@ class ApiClient {
     ));
 
     try {
-      print('DEBUG calling RoboStem: /api/skills/global with params: ${{
-        'program': 'VIQRC',
-        'limit': 100,
-        'grade_level': gradeLevel,
-      }}');
+      // print('DEBUG calling RoboStem: /api/skills/global with params: ${{
+      //   'program': 'VIQRC',
+      //   'limit': 100,
+      //   'grade_level': gradeLevel,
+      // }}');
 
       final response = await dio.get('/api/skills/global', queryParameters: {
         'program': 'VIQRC',
@@ -292,14 +290,14 @@ class ApiClient {
       }).toList();
 
       if (filteredList.length < rawList.length) {
-        print(
-            'DEBUG: Client-side filtered ${rawList.length - filteredList.length} items that did not match $gradeLevel');
+        // print(
+        //     'DEBUG: Client-side filtered ${rawList.length - filteredList.length} items that did not match $gradeLevel');
       }
 
       return filteredList;
     } catch (e) {
       if (e is DioException) {
-        print('RoboStem API Error: ${e.message} ${e.response?.statusCode}');
+        // print('RoboStem API Error: ${e.message} ${e.response?.statusCode}');
       }
       return [];
     }
@@ -360,7 +358,7 @@ class ApiClient {
             ];
           }
         } catch (e) {
-          print('RoboStem enrichment failed, using RobotEvents data: $e');
+          // print('RoboStem enrichment failed, using RobotEvents data: $e');
         }
 
         // Return RobotEvents team even without RoboStem enrichment
@@ -402,7 +400,7 @@ class ApiClient {
       return data.map((json) => Team.fromJson(json)).toList();
     } catch (e) {
       if (e is DioException) {
-        print('RoboStem API Search Error: ${e.message}');
+        // print('RoboStem API Search Error: ${e.message}');
       }
       return [];
     }
@@ -449,7 +447,7 @@ class ApiClient {
       }
       return null;
     } catch (e) {
-      print('Error fetching team skill rank: $e');
+      // print('Error fetching team skill rank: $e');
       return null;
     }
   }
@@ -496,8 +494,8 @@ class ApiClient {
 
       final allItems = await _fetchAllPages('/events', queryParams);
       final events = allItems.map((json) => Event.fromJson(json)).toList();
-      print(
-          'DEBUG searchEvents: Found ${events.length} events (name=$name, start=$start, end=$end)');
+      // print(
+      //     'DEBUG searchEvents: Found ${events.length} events (name=$name, start=$start, end=$end)');
       return events;
     } catch (e) {
       rethrow;
@@ -524,7 +522,7 @@ class ApiClient {
           }
           allRankings.addAll(pages);
         } catch (e) {
-          print('Error fetching rankings for division $divId: $e');
+          // print('Error fetching rankings for division $divId: $e');
         }
       }
       return allRankings;
@@ -565,7 +563,7 @@ class ApiClient {
             }
             allSkills.addAll(pages);
           } catch (e) {
-            print('Error fetching skills for division $divId: $e');
+            // print('Error fetching skills for division $divId: $e');
           }
         }
       }
@@ -580,7 +578,7 @@ class ApiClient {
           );
           allSkills.addAll(pages);
         } catch (e) {
-          print('Error fetching direct skills for event $eventId: $e');
+          // print('Error fetching direct skills for event $eventId: $e');
         }
       }
 

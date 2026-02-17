@@ -55,13 +55,13 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
                 setState(() {
                   errorMessage = error.toString();
                 });
-                print(error.toString());
+                // print(error.toString());
               },
               onPageError: (page, error) {
                 setState(() {
                   errorMessage = '$page: ${error.toString()}';
                 });
-                print('$page: ${error.toString()}');
+                // print('$page: ${error.toString()}');
               },
               onViewCreated: (PDFViewController pdfViewController) {
                 // Controller can be used here if needed

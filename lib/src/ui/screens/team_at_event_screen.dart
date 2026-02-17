@@ -105,8 +105,9 @@ class TeamAtEventScreen extends ConsumerWidget {
                       if (!a.isQualifier && b.isQualifier) return 1;
                       // Within same type, sort by round, instance, matchNum
                       if (a.round != b.round) return a.round.compareTo(b.round);
-                      if (a.instance != b.instance)
+                      if (a.instance != b.instance) {
                         return a.instance.compareTo(b.instance);
+                      }
                       return a.matchNum.compareTo(b.matchNum);
                     });
 
