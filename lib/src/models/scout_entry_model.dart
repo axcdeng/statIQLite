@@ -7,7 +7,7 @@ part 'scout_entry_model.g.dart';
 
 @freezed
 class ScoutEntry with _$ScoutEntry {
-  @HiveType(typeId: 3, adapterName: 'ScoutEntryAdapter')
+  @HiveType(typeId: 3, adapterName: '_ScoutEntryAdapter')
   const factory ScoutEntry({
     @HiveField(0) required String id, // UUID
     @HiveField(1) required int eventId,
@@ -20,4 +20,8 @@ class ScoutEntry with _$ScoutEntry {
   }) = ScoutEntryImpl;
 
   factory ScoutEntry.fromJson(Map<String, dynamic> json) => _$ScoutEntryFromJson(json);
+
+  static void registerAdapter() {
+    Hive.registerAdapter(_ScoutEntryAdapter());
+  }
 }

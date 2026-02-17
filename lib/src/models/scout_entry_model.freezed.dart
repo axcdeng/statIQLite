@@ -198,7 +198,7 @@ class __$$ScoutEntryImplImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-@HiveType(typeId: 3, adapterName: 'ScoutEntryAdapter')
+@HiveType(typeId: 3, adapterName: '_ScoutEntryAdapter')
 class _$ScoutEntryImplImpl implements ScoutEntryImpl {
   const _$ScoutEntryImplImpl(
       {@HiveField(0) required this.id,
