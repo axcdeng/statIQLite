@@ -18,7 +18,7 @@ dependencies:
   flutter_secure_storage: ^8.0.0
   csv: ^5.0.0
   excel: ^2.0.0
-  share_plus: ^12.0.1
+  share_plus: ^7.2.0
   path_provider: ^2.0.0
   intl: ^0.18.0
   workmanager: ^0.5.0
