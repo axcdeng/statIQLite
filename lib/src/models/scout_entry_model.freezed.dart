@@ -15,7 +15,7 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 ScoutEntry _$ScoutEntryFromJson(Map<String, dynamic> json) {
-  return ScoutEntryImpl.fromJson(json);
+  return _ScoutEntry.fromJson(json);
 }
 
 /// @nodoc
@@ -121,11 +121,11 @@ class _$ScoutEntryCopyWithImpl<$Res, $Val extends ScoutEntry>
 }
 
 /// @nodoc
-abstract class _$$ScoutEntryImplImplCopyWith<$Res>
+abstract class _$$ScoutEntryImplCopyWith<$Res>
     implements $ScoutEntryCopyWith<$Res> {
-  factory _$$ScoutEntryImplImplCopyWith(_$ScoutEntryImplImpl value,
-          $Res Function(_$ScoutEntryImplImpl) then) =
-      __$$ScoutEntryImplImplCopyWithImpl<$Res>;
+  factory _$$ScoutEntryImplCopyWith(
+          _$ScoutEntryImpl value, $Res Function(_$ScoutEntryImpl) then) =
+      __$$ScoutEntryImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call(
@@ -140,11 +140,11 @@ abstract class _$$ScoutEntryImplImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$ScoutEntryImplImplCopyWithImpl<$Res>
-    extends _$ScoutEntryCopyWithImpl<$Res, _$ScoutEntryImplImpl>
-    implements _$$ScoutEntryImplImplCopyWith<$Res> {
-  __$$ScoutEntryImplImplCopyWithImpl(
-      _$ScoutEntryImplImpl _value, $Res Function(_$ScoutEntryImplImpl) _then)
+class __$$ScoutEntryImplCopyWithImpl<$Res>
+    extends _$ScoutEntryCopyWithImpl<$Res, _$ScoutEntryImpl>
+    implements _$$ScoutEntryImplCopyWith<$Res> {
+  __$$ScoutEntryImplCopyWithImpl(
+      _$ScoutEntryImpl _value, $Res Function(_$ScoutEntryImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -159,7 +159,7 @@ class __$$ScoutEntryImplImplCopyWithImpl<$Res>
     Object? notes = freezed,
     Object? scoutName = null,
   }) {
-    return _then(_$ScoutEntryImplImpl(
+    return _then(_$ScoutEntryImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
@@ -198,9 +198,9 @@ class __$$ScoutEntryImplImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-@HiveType(typeId: 3, adapterName: '_ScoutEntryAdapter')
-class _$ScoutEntryImplImpl implements ScoutEntryImpl {
-  const _$ScoutEntryImplImpl(
+@HiveType(typeId: 3, adapterName: 'ScoutEntryAdapter')
+class _$ScoutEntryImpl implements _ScoutEntry {
+  const _$ScoutEntryImpl(
       {@HiveField(0) required this.id,
       @HiveField(1) required this.eventId,
       @HiveField(2) required this.matchId,
@@ -211,8 +211,8 @@ class _$ScoutEntryImplImpl implements ScoutEntryImpl {
       @HiveField(7) required this.scoutName})
       : _data = data;
 
-  factory _$ScoutEntryImplImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ScoutEntryImplImplFromJson(json);
+  factory _$ScoutEntryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ScoutEntryImplFromJson(json);
 
   @override
   @HiveField(0)
@@ -256,7 +256,7 @@ class _$ScoutEntryImplImpl implements ScoutEntryImpl {
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ScoutEntryImplImpl &&
+            other is _$ScoutEntryImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.eventId, eventId) || other.eventId == eventId) &&
             (identical(other.matchId, matchId) || other.matchId == matchId) &&
@@ -278,20 +278,19 @@ class _$ScoutEntryImplImpl implements ScoutEntryImpl {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$ScoutEntryImplImplCopyWith<_$ScoutEntryImplImpl> get copyWith =>
-      __$$ScoutEntryImplImplCopyWithImpl<_$ScoutEntryImplImpl>(
-          this, _$identity);
+  _$$ScoutEntryImplCopyWith<_$ScoutEntryImpl> get copyWith =>
+      __$$ScoutEntryImplCopyWithImpl<_$ScoutEntryImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ScoutEntryImplImplToJson(
+    return _$$ScoutEntryImplToJson(
       this,
     );
   }
 }
 
-abstract class ScoutEntryImpl implements ScoutEntry {
-  const factory ScoutEntryImpl(
+abstract class _ScoutEntry implements ScoutEntry {
+  const factory _ScoutEntry(
       {@HiveField(0) required final String id,
       @HiveField(1) required final int eventId,
       @HiveField(2) required final int matchId,
@@ -299,10 +298,10 @@ abstract class ScoutEntryImpl implements ScoutEntry {
       @HiveField(4) required final DateTime timestamp,
       @HiveField(5) required final Map<String, dynamic> data,
       @HiveField(6) final String? notes,
-      @HiveField(7) required final String scoutName}) = _$ScoutEntryImplImpl;
+      @HiveField(7) required final String scoutName}) = _$ScoutEntryImpl;
 
-  factory ScoutEntryImpl.fromJson(Map<String, dynamic> json) =
-      _$ScoutEntryImplImpl.fromJson;
+  factory _ScoutEntry.fromJson(Map<String, dynamic> json) =
+      _$ScoutEntryImpl.fromJson;
 
   @override
   @HiveField(0)
@@ -330,6 +329,6 @@ abstract class ScoutEntryImpl implements ScoutEntry {
   String get scoutName;
   @override
   @JsonKey(ignore: true)
-  _$$ScoutEntryImplImplCopyWith<_$ScoutEntryImplImpl> get copyWith =>
+  _$$ScoutEntryImplCopyWith<_$ScoutEntryImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

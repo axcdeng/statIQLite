@@ -92,10 +92,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           return;
         }
       }
-      final teamRef = team;
 
       // 2. Get team's current-season events
-      final events = await teamsRepo.getTeamEvents(teamRef.id,
+      final events = await teamsRepo.getTeamEvents(team.id,
           seasonId: ref.read(settingsProvider).primarySeasonId);
 
       // 3. Find an event that is active TODAY
@@ -116,14 +115,13 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         if (mounted) setState(() => _loading[teamNumber] = false);
         return;
       }
-      final event = activeEvent;
 
       // 4. Fetch rankings, matches, skills in parallel
-      final rankingsFuture = eventsRepo.getEventRankings(event.id);
+      final rankingsFuture = eventsRepo.getEventRankings(activeEvent.id);
       final matchesFuture = matchesRepo
-          .fetchMatches(event.id)
-          .then((_) => matchesRepo.getMatchesForEvent(event.id));
-      final skillsFuture = eventsRepo.getEventSkills(event.id);
+          .fetchMatches(activeEvent.id)
+          .then((_) => matchesRepo.getMatchesForEvent(activeEvent!.id));
+      final skillsFuture = eventsRepo.getEventSkills(activeEvent.id);
 
       final results = await Future.wait([
         rankingsFuture,
@@ -156,8 +154,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       final teamMatches = matches.where((m) =>
           m.redAllianceTeamNums.contains(teamNumber) ||
           m.blueAllianceTeamNums.contains(teamNumber) ||
-          m.redAllianceTeamIds.contains(teamRef.id) ||
-          m.blueAllianceTeamIds.contains(teamRef.id));
+          m.redAllianceTeamIds.contains(team!.id) ||
+          m.blueAllianceTeamIds.contains(team!.id));
 
       for (final m in teamMatches) {
         if (m.redScore == null && m.blueScore == null) {
@@ -207,7 +205,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       if (mounted) {
         setState(() {
           _teamStats[teamNumber] = _TeamEventStats(
-            event: event,
+            event: activeEvent!,
             rank: rank,
             avgPoints: avgPoints,
             upcomingMatch: upcoming,
@@ -222,7 +220,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         });
       }
     } catch (e) {
-      // print('Error fetching stats for $teamNumber: $e');
+      print('Error fetching stats for $teamNumber: $e');
       if (mounted) setState(() => _loading[teamNumber] = false);
     }
   }
@@ -240,8 +238,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       child: CupertinoPageScaffold(
         backgroundColor:
             CupertinoColors.systemGroupedBackground.resolveFrom(context),
-        navigationBar: const CupertinoNavigationBar(
-          middle: Text('Favorites'),
+        navigationBar: CupertinoNavigationBar(
+          middle: const Text('Favorites'),
         ),
         child: SafeArea(
           child: CustomScrollView(

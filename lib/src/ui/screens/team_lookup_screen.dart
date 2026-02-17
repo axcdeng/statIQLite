@@ -121,8 +121,8 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
     return Material(
       color: Colors.transparent,
       child: CupertinoPageScaffold(
-        navigationBar: const CupertinoNavigationBar(
-          middle: Text('Lookup'),
+        navigationBar: CupertinoNavigationBar(
+          middle: const Text('Lookup'),
           // Removed trailing link icon
         ),
         child: SafeArea(
@@ -254,7 +254,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                       .read(eventsRepositoryProvider)
                       .getEventById(returnState.eventId);
                 } catch (e) {
-                  // print('Error fetching event for return: $e');
+                  print('Error fetching event for return: $e');
                 }
 
                 // Fallback if fetch fails (use basic info)
@@ -528,9 +528,9 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                         ),
                       );
                     },
-                    child: const Padding(
-                      padding: EdgeInsets.only(left: 4.0),
-                      child: Icon(CupertinoIcons.info_circle,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4.0),
+                      child: const Icon(CupertinoIcons.info_circle,
                           size: 18, color: CupertinoColors.systemGrey),
                     ),
                   ),

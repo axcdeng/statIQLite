@@ -86,6 +86,38 @@ class MatchAdapter extends TypeAdapter<MatchModel> {
 // JsonSerializableGenerator
 // **************************************************************************
 
+MatchModel _$MatchModelFromJson(Map<String, dynamic> json) => MatchModel(
+      id: (json['id'] as num).toInt(),
+      eventId: (json['eventId'] as num).toInt(),
+      name: json['name'] as String,
+      round: (json['round'] as num).toInt(),
+      instance: (json['instance'] as num).toInt(),
+      matchNum: (json['matchNum'] as num).toInt(),
+      redAllianceTeamIds: (json['redAllianceTeamIds'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const [],
+      blueAllianceTeamIds: (json['blueAllianceTeamIds'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const [],
+      redAllianceTeamNums: (json['redAllianceTeamNums'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      blueAllianceTeamNums: (json['blueAllianceTeamNums'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      scheduledTime: json['scheduledTime'] == null
+          ? null
+          : DateTime.parse(json['scheduledTime'] as String),
+      redScore: (json['redScore'] as num?)?.toInt(),
+      blueScore: (json['blueScore'] as num?)?.toInt(),
+      winner: json['winner'] as String?,
+      divisionId: (json['divisionId'] as num?)?.toInt(),
+    );
+
 Map<String, dynamic> _$MatchModelToJson(MatchModel instance) =>
     <String, dynamic>{
       'id': instance.id,
@@ -103,8 +135,4 @@ Map<String, dynamic> _$MatchModelToJson(MatchModel instance) =>
       'redAllianceTeamNums': instance.redAllianceTeamNums,
       'blueAllianceTeamNums': instance.blueAllianceTeamNums,
       'divisionId': instance.divisionId,
-      'safeScheduledTime': instance.safeScheduledTime.toIso8601String(),
-      'shortName': instance.shortName,
-      'isQualifier': instance.isQualifier,
-      'isFinals': instance.isFinals,
     };

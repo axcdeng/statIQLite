@@ -6,17 +6,17 @@ part of 'scout_entry_model.dart';
 // TypeAdapterGenerator
 // **************************************************************************
 
-class _ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImplImpl> {
+class ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImpl> {
   @override
   final int typeId = 3;
 
   @override
-  _$ScoutEntryImplImpl read(BinaryReader reader) {
+  _$ScoutEntryImpl read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return _$ScoutEntryImplImpl(
+    return _$ScoutEntryImpl(
       id: fields[0] as String,
       eventId: fields[1] as int,
       matchId: fields[2] as int,
@@ -29,7 +29,7 @@ class _ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImplImpl> {
   }
 
   @override
-  void write(BinaryWriter writer, _$ScoutEntryImplImpl obj) {
+  void write(BinaryWriter writer, _$ScoutEntryImpl obj) {
     writer
       ..writeByte(8)
       ..writeByte(0)
@@ -56,7 +56,7 @@ class _ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImplImpl> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is _ScoutEntryAdapter &&
+      other is ScoutEntryAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
@@ -65,8 +65,8 @@ class _ScoutEntryAdapter extends TypeAdapter<_$ScoutEntryImplImpl> {
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$ScoutEntryImplImpl _$$ScoutEntryImplImplFromJson(Map<String, dynamic> json) =>
-    _$ScoutEntryImplImpl(
+_$ScoutEntryImpl _$$ScoutEntryImplFromJson(Map<String, dynamic> json) =>
+    _$ScoutEntryImpl(
       id: json['id'] as String,
       eventId: (json['eventId'] as num).toInt(),
       matchId: (json['matchId'] as num).toInt(),
@@ -77,8 +77,7 @@ _$ScoutEntryImplImpl _$$ScoutEntryImplImplFromJson(Map<String, dynamic> json) =>
       scoutName: json['scoutName'] as String,
     );
 
-Map<String, dynamic> _$$ScoutEntryImplImplToJson(
-        _$ScoutEntryImplImpl instance) =>
+Map<String, dynamic> _$$ScoutEntryImplToJson(_$ScoutEntryImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
       'eventId': instance.eventId,

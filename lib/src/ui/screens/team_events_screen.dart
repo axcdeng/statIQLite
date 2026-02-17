@@ -139,7 +139,7 @@ class _TeamEventsScreenState extends ConsumerState<TeamEventsScreen> {
                                           children: [
                                             Icon(CupertinoIcons.clock,
                                                 size: 16, color: primaryColor),
-                                            const SizedBox(width: 8),
+                                            SizedBox(width: 8),
                                             Text('Load Previous Seasons',
                                                 style: TextStyle(
                                                     color: primaryColor,
@@ -280,7 +280,7 @@ class _EventDetails extends ConsumerWidget {
                 children: [
                   Icon(CupertinoIcons.arrow_right_circle,
                       size: 16, color: primaryColor),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Text('View Full Event',
                       style: TextStyle(
                           color: primaryColor,

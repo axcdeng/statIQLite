@@ -85,7 +85,7 @@ class MatchDetailScreen extends ConsumerWidget {
                     arguments: {'match': match},
                   );
                 },
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(CupertinoIcons.doc_text_viewfinder),

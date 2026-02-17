@@ -4,7 +4,7 @@ import 'package:json_annotation/json_annotation.dart';
 part 'match_model.g.dart';
 
 @HiveType(typeId: 2, adapterName: 'MatchAdapter')
-@JsonSerializable(createFactory: false)
+@JsonSerializable()
 class MatchModel {
   @HiveField(0)
   final int id;
@@ -92,13 +92,12 @@ class MatchModel {
 
     String? winner;
     if (rScore != null && bScore != null) {
-      if (rScore > bScore) {
+      if (rScore > bScore)
         winner = 'red';
-      } else if (bScore > rScore) {
+      else if (bScore > rScore)
         winner = 'blue';
-      } else {
+      else
         winner = 'tie';
-      }
     }
 
     return MatchModel(

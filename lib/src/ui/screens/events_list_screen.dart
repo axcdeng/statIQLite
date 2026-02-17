@@ -733,7 +733,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
   Widget _buildFilterBar(BuildContext context, EventFilters filters) {
     final countries = ref.watch(eventsListControllerProvider).availableCountries;
 
-    String getLabel(String base, List<String> selected) {
+    String _getLabel(String base, List<String> selected) {
       if (selected.isEmpty) return base;
       String label = selected.first;
       if (selected.length > 1) {
@@ -749,7 +749,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
       child: Row(
         children: [
           _buildFilterChip(
-            label: getLabel('Countries', filters.countries),
+            label: _getLabel('Countries', filters.countries),
             isSelected: filters.countries.isNotEmpty,
             onTap: () => _showAlphabeticalPicker(
               title: 'Country',
@@ -764,7 +764,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
             ),
           ),
           _buildFilterChip(
-            label: getLabel('Regions', filters.regions),
+            label: _getLabel('Regions', filters.regions),
             isSelected: filters.regions.isNotEmpty,
             onTap: () => _showAlphabeticalPicker(
               title: 'Region',
@@ -786,7 +786,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
             ),
           ),
           _buildFilterChip(
-            label: getLabel('Grades', filters.grades),
+            label: _getLabel('Grades', filters.grades),
             isSelected: filters.grades.isNotEmpty,
             onTap: () => _showAlphabeticalPicker(
               title: 'Grade',
@@ -800,7 +800,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
             ),
           ),
           _buildFilterChip(
-            label: getLabel('Type', filters.types),
+            label: _getLabel('Type', filters.types),
             isSelected: filters.types.isNotEmpty,
             onTap: () => _showAlphabeticalPicker(
               title: 'Type',

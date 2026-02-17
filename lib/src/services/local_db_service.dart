@@ -17,7 +17,7 @@ class LocalDbService {
     Hive.registerAdapter(DivisionAdapter());
     Hive.registerAdapter(TeamAdapter());
     Hive.registerAdapter(MatchAdapter());
-    ScoutEntry.registerAdapter();
+    Hive.registerAdapter(ScoutEntryAdapter());
     Hive.registerAdapter(ScoreEntryAdapter());
 
     // Open boxes

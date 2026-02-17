@@ -5,7 +5,7 @@ import 'package:roboscout_iq/src/models/division.dart';
 part 'event_model.g.dart';
 
 @HiveType(typeId: 0, adapterName: 'EventAdapter')
-@JsonSerializable(createFactory: false)
+@JsonSerializable()
 class Event {
   @HiveField(0)
   final int id;

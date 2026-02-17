@@ -97,8 +97,8 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
           middle: const Text('World Skills'),
           trailing: CupertinoButton(
             padding: EdgeInsets.zero,
-            onPressed: _fetchSkills,
             child: Icon(CupertinoIcons.refresh, color: primaryColor),
+            onPressed: _fetchSkills,
           ),
         ),
         child: SafeArea(
@@ -113,13 +113,6 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                     thumbColor: primaryColor,
                     backgroundColor: CupertinoColors.tertiarySystemFill,
                     groupValue: _gradeLevel,
-                    onValueChanged: (String? value) {
-                      if (value != null) {
-                        setState(() {
-                          _gradeLevel = value;
-                        });
-                      }
-                    },
                     children: {
                       'Middle School': Padding(
                         padding: const EdgeInsets.symmetric(
@@ -143,6 +136,13 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                                     : CupertinoColors.secondaryLabel
                                         .resolveFrom(context))),
                       ),
+                    },
+                    onValueChanged: (String? value) {
+                      if (value != null) {
+                        setState(() {
+                          _gradeLevel = value;
+                        });
+                      }
                     },
                   ),
                 ),

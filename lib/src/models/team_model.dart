@@ -4,7 +4,7 @@ import 'package:json_annotation/json_annotation.dart';
 part 'team_model.g.dart';
 
 @HiveType(typeId: 1, adapterName: 'TeamAdapter')
-@JsonSerializable(createFactory: false)
+@JsonSerializable()
 class Team {
   @HiveField(0)
   final int id;
