@@ -21,7 +21,7 @@ dependencies:
   share_plus: ^7.2.0
   path_provider: ^2.0.0
   intl: ^0.18.0
-  workmanager: ^0.9.0
+  workmanager: ^0.7.0
   uuid: ^3.0.6
   url_launcher: ^6.1.11
   flutter_pdfview: ^1.4.4
