@@ -738,7 +738,7 @@ class _GameManualTabState extends State<GameManualTab> {
                           .resolveFrom(context),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                          color: primaryColor.withValues(alpha: 0.4), width: 1),
+                          color: primaryColor.withOpacity(0.4), width: 1),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -798,8 +798,8 @@ class _GameManualTabState extends State<GameManualTab> {
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  primaryColor.withValues(alpha: 0.2),
-                                  primaryColor.withValues(alpha: 0.05),
+                                  primaryColor.withOpacity(0.2),
+                                  primaryColor.withOpacity(0.05),
                                 ],
                               ),
                               borderRadius: BorderRadius.circular(10),
@@ -920,7 +920,7 @@ class _GameManualTabState extends State<GameManualTab> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: 0.15),
+                  color: primaryColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
