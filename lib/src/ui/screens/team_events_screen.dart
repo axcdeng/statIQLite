@@ -265,7 +265,7 @@ class _EventDetails extends ConsumerWidget {
             child: CupertinoButton(
               padding: const EdgeInsets.symmetric(vertical: 8),
               color: primaryColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: const BorderRadius.all(Radius.circular(8)),
               onPressed: () {
                 if (event.divisions != null && event.divisions!.length > 1) {
                   Navigator.of(context).push(CupertinoPageRoute(
