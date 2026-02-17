@@ -305,6 +305,49 @@ class ApiClient {
     }
   }
 
+  Future<List<Team>> getGlobalTrueSkillRankings(
+      {String gradeLevel = 'Middle School'}) async {
+    // RoboStem API uses a different base URL and key
+    final token = _settings.roboStemApiKey ?? AppConstants.roboStemApiKey;
+    final dio = Dio(BaseOptions(
+      baseUrl: AppConstants.roboStemBaseUrl, // https://api.robostem-api.org
+      headers: {
+        'x-api-key': token,
+        'accept': 'application/json',
+      },
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+    ));
+
+    try {
+      final response = await dio.get('/api/rankings/statiq', queryParameters: {
+        'program': 'VIQRC',
+        'limit': 100, // Reduced from 2500 for performance
+        'grade_level': gradeLevel,
+      });
+
+      // RoboStem response structure might differ. Assuming standard list or {data: []}
+      List<Map<String, dynamic>> rawList = [];
+      if (response.data is List) {
+        rawList = (response.data as List).cast<Map<String, dynamic>>();
+      } else if (response.data is Map && response.data['data'] is List) {
+        rawList = (response.data['data'] as List).cast<Map<String, dynamic>>();
+      }
+
+      // Client-side filter fallback (just in case API returns mixed results)
+      // The sample response shows 'grade_level': 'Middle School' or 'Elementary School'
+      final filteredList = rawList.where((item) {
+        // Try both 'grade' (standard Team model) and 'grade_level' (API param/possible return)
+        final g = item['grade'] ?? item['grade_level'];
+        return g == gradeLevel;
+      }).toList();
+
+      return filteredList.map((json) => Team.fromJson(json)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<List<Team>> searchTeams(
       {String? number, int? program, int? limit}) async {
     // Strategy: Use RobotEvents API for exact team lookup first,
