@@ -1,14 +1,16 @@
 import 'dart:math';
-import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:roboscout_iq/src/state/providers.dart';
 import 'package:roboscout_iq/src/state/timer_provider.dart';
 
 class MatchTimerTab extends ConsumerStatefulWidget {
-  const MatchTimerTab({super.key});
+  final bool isActive;
+  const MatchTimerTab({super.key, this.isActive = true});
 
   @override
   ConsumerState<MatchTimerTab> createState() => _MatchTimerTabState();
@@ -41,7 +43,7 @@ class _MatchTimerTabState extends ConsumerState<MatchTimerTab>
     try {
       await _audioPlayer.play(AssetSource('audio/$fileName'));
     } catch (e) {
-      print('Error playing sound $fileName: $e');
+      debugPrint('Error playing sound $fileName: $e');
     }
   }
 
@@ -101,41 +103,59 @@ class _MatchTimerTabState extends ConsumerState<MatchTimerTab>
       _pulseController.value = 0;
     }
 
-    return Column(
-      children: [
-        const Spacer(),
-        // Timer Circle
-        Expanded(
-          flex: 3,
-          child: Center(child: _buildTimerCircle(primaryColor, state, context)),
-        ),
-        const Spacer(),
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        final actualOrientation = MediaQuery.of(context).orientation;
 
-        // Controls
-        Padding(
-          padding: const EdgeInsets.only(bottom: 48),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildControlButton(
-                icon: CupertinoIcons.arrow_counterclockwise,
-                label: 'Reset',
-                onTap: notifier.reset,
-                color: CupertinoColors.systemGrey,
+        if (actualOrientation == Orientation.landscape && widget.isActive) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final mainIndex = ref.read(bottomNavIndexProvider);
+            final resourcesTab = ref.read(resourcesTabProvider);
+            final route = ModalRoute.of(context);
+            // Only toggle if we are on the Resources tab (index 3) AND the Timer sub-tab (index 3)
+            // AND the screen is actually currently visible.
+            if (mainIndex == 3 &&
+                resourcesTab == 3 &&
+                route != null &&
+                route.isCurrent) {
+              _toggleFullscreen();
+            }
+          });
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          children: [
+            Expanded(
+              child: Center(
+                  child: _buildTimerCircle(primaryColor, state, context)),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 64),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildControlButton(
+                    icon: CupertinoIcons.arrow_counterclockwise,
+                    label: 'Reset',
+                    onTap: notifier.reset,
+                    color: CupertinoColors.systemGrey,
+                  ),
+                  const SizedBox(width: 32),
+                  _buildPlayButton(primaryColor, state, notifier),
+                  const SizedBox(width: 32),
+                  _buildControlButton(
+                    icon: CupertinoIcons.rotate_right,
+                    label: 'Full',
+                    onTap: _toggleFullscreen,
+                    color: CupertinoColors.systemGrey,
+                  ),
+                ],
               ),
-              const SizedBox(width: 32),
-              _buildPlayButton(primaryColor, state, notifier),
-              const SizedBox(width: 32),
-              _buildControlButton(
-                icon: CupertinoIcons.rotate_right,
-                label: 'Full',
-                onTap: _toggleFullscreen,
-                color: CupertinoColors.systemGrey,
-              ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -175,69 +195,75 @@ class _MatchTimerTabState extends ConsumerState<MatchTimerTab>
                 backgroundColor: CupertinoColors.tertiarySystemFill,
               ),
               child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (state.isCountingDown)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          'Starting in...',
+                child: Padding(
+                  padding: const EdgeInsets.all(40.0),
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (state.isCountingDown)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              'Starting in...',
+                              style: TextStyle(
+                                color: CupertinoColors.secondaryLabel
+                                    .resolveFrom(context),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        Text(
+                          _timeString(state),
                           style: TextStyle(
-                            color: CupertinoColors.secondaryLabel
-                                .resolveFrom(context),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            color: _timerColor(state, context),
+                            fontSize: 100,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -2,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
-                      ),
-                    Text(
-                      _timeString(state),
-                      style: TextStyle(
-                        color: _timerColor(state, context),
-                        fontSize: state.isCountingDown ? 120 : 80,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -2,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
+                        if (state.isRunning &&
+                            state.remainingSeconds <= 35 &&
+                            state.remainingSeconds > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              state.remainingSeconds <= 10
+                                  ? 'FINAL SECONDS'
+                                  : state.remainingSeconds > 25
+                                      ? 'DRIVER SWITCH'
+                                      : 'DRIVER 2',
+                              style: TextStyle(
+                                color: _timerColor(state, context)
+                                    .withAlpha((0.8 * 255).round()),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          )
+                        else if (!state.isRunning &&
+                            !state.isCountingDown &&
+                            state.remainingSeconds == 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              'MATCH OVER',
+                              style: TextStyle(
+                                color: _timerColor(state, context)
+                                    .withAlpha((0.8 * 255).round()),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    if (state.isRunning &&
-                        state.remainingSeconds <= 35 &&
-                        state.remainingSeconds > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          state.remainingSeconds <= 10
-                              ? 'FINAL SECONDS'
-                              : state.remainingSeconds > 25
-                                  ? 'DRIVER SWITCH'
-                                  : 'DRIVER 2',
-                          style: TextStyle(
-                            color: _timerColor(state, context)
-                                .withAlpha((0.8 * 255).round()),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                      )
-                    else if (!state.isRunning &&
-                        !state.isCountingDown &&
-                        state.remainingSeconds == 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'MATCH OVER',
-                          style: TextStyle(
-                            color: _timerColor(state, context)
-                                .withAlpha((0.8 * 255).round()),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -342,7 +368,7 @@ class _FullscreenTimerPageState extends ConsumerState<FullscreenTimerPage> {
     try {
       await _audioPlayer.play(AssetSource('audio/$fileName'));
     } catch (e) {
-      print('Error playing sound $fileName: $e');
+      debugPrint('Error playing sound $fileName: $e');
     }
   }
 
@@ -400,6 +426,15 @@ class _FullscreenTimerPageState extends ConsumerState<FullscreenTimerPage> {
       }
     });
 
+    // Auto-pop when rotating back to portrait
+    if (MediaQuery.of(context).orientation == Orientation.portrait) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      });
+    }
+
     return Scaffold(
       backgroundColor: CupertinoColors.black,
       body: SafeArea(
@@ -416,7 +451,7 @@ class _FullscreenTimerPageState extends ConsumerState<FullscreenTimerPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (state.isCountingDown)
-                          Text(
+                          const Text(
                             'Starting in...',
                             style: TextStyle(
                               color: CupertinoColors.systemGrey,
@@ -475,16 +510,16 @@ class _FullscreenTimerPageState extends ConsumerState<FullscreenTimerPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _buildFullscreenControlButton(
-                    icon: CupertinoIcons.arrow_counterclockwise,
-                    onTap: notifier.reset,
+                    icon: CupertinoIcons.fullscreen_exit,
+                    onTap: () => Navigator.of(context).pop(),
                     color: CupertinoColors.systemGrey,
                   ),
                   const SizedBox(height: 24),
                   _buildFullscreenPlayButton(primaryColor, state, notifier),
                   const SizedBox(height: 24),
                   _buildFullscreenControlButton(
-                    icon: CupertinoIcons.fullscreen_exit,
-                    onTap: () => Navigator.of(context).pop(),
+                    icon: CupertinoIcons.arrow_counterclockwise,
+                    onTap: notifier.reset,
                     color: CupertinoColors.systemGrey,
                   ),
                 ],

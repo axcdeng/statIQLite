@@ -19,27 +19,18 @@ class TeamLookupScreen extends ConsumerStatefulWidget {
   ConsumerState<TeamLookupScreen> createState() => _TeamLookupScreenState();
 }
 
-class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
   final _searchController = TextEditingController();
 
   // Search State
   bool _isLoading = false;
   Team? _team;
   Map<String, dynamic>? _worldSkillsData;
-  // List<dynamic>? _events; // Not strictly needed unless we want to show count
   String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
+  int _tabIndex = 0;
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -48,6 +39,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
 
+    FocusScope.of(context).unfocus();
     ref.read(teamSearchQueryProvider.notifier).state = query;
 
     setState(() {
@@ -102,80 +94,71 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
-    ref.listen(teamSearchQueryProvider, (previous, next) {
-      if (next != null && next.isNotEmpty) {
-        // Ensure we are on the Teams tab
-        if (_tabController.index != 0) {
-          setState(() {
-            _tabController.index = 0;
-          });
-        }
-
-        if (next != _searchController.text) {
+    // Listen to external search triggers (e.g. from TeamAtEventScreen "Return" or Favorites)
+    ref.listen<String?>(teamSearchQueryProvider, (previous, next) {
+      if (next != null && next.isNotEmpty && next != _searchController.text) {
+        setState(() {
+          _tabIndex = 0;
           _searchController.text = next;
-          _search();
-        }
+        });
+        _search();
       }
     });
 
-    return Material(
-      color: Colors.transparent,
-      child: CupertinoPageScaffold(
-        navigationBar: CupertinoNavigationBar(
-          middle: const Text('Lookup'),
-          // Removed trailing link icon
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 12.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: CupertinoSlidingSegmentedControl<int>(
-                    thumbColor: primaryColor,
-                    backgroundColor: CupertinoColors.tertiarySystemFill,
-                    groupValue: _tabController.index,
-                    children: {
-                      0: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 8),
-                          child: Text('Teams',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: _tabController.index == 0
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                      : CupertinoColors.secondaryLabel
-                                          .resolveFrom(context)))),
-                      1: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 8),
-                          child: Text('Events',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: _tabController.index == 1
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                      : CupertinoColors.secondaryLabel
-                                          .resolveFrom(context)))),
-                    },
-                    onValueChanged: (int? value) {
-                      if (value != null) {
-                        setState(() {
-                          _tabController.index = value;
-                        });
-                      }
-                    },
-                  ),
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Lookup'),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: CupertinoSlidingSegmentedControl<int>(
+                  thumbColor: primaryColor,
+                  backgroundColor: CupertinoColors.tertiarySystemFill,
+                  groupValue: _tabIndex,
+                  children: {
+                    0: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 8),
+                        child: Text('Teams',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: _tabIndex == 0
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : CupertinoColors.secondaryLabel
+                                        .resolveFrom(context)))),
+                    1: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 8),
+                        child: Text('Events',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: _tabIndex == 1
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : CupertinoColors.secondaryLabel
+                                        .resolveFrom(context)))),
+                  },
+                  onValueChanged: (int? value) {
+                    if (value != null) {
+                      setState(() {
+                        _tabIndex = value;
+                      });
+                    }
+                  },
                 ),
               ),
-              Expanded(
-                child: _tabController.index == 0
-                    ? _buildTeamsTab()
-                    : const EventsListView(showNavigationBar: false),
-              ),
-            ],
-          ),
+            ),
+            Expanded(
+              child: _tabIndex == 0
+                  ? _buildTeamsTab()
+                  : const EventsListView(showNavigationBar: false),
+            ),
+          ],
         ),
       ),
     );
@@ -201,7 +184,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
               const SizedBox(width: 8),
               CupertinoButton(
                 padding: EdgeInsets.zero,
-                minSize: 0,
+                minimumSize: Size.zero,
                 child: Icon(CupertinoIcons.clock, color: primaryColor),
                 onPressed: () => _showHistory(context),
               ),
@@ -235,7 +218,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
       margin: const EdgeInsets.only(bottom: 16.0),
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemBlue.withOpacity(0.1),
+        color: CupertinoColors.systemBlue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -254,7 +237,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                       .read(eventsRepositoryProvider)
                       .getEventById(returnState.eventId);
                 } catch (e) {
-                  print('Error fetching event for return: $e');
+                  debugPrint('Error fetching event for return: $e');
                 }
 
                 // Fallback if fetch fails (use basic info)
@@ -312,17 +295,20 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     // Stats
-    final worldRank = _worldSkillsData?['rank'];
-    final worldScore = _worldSkillsData?['score'];
-    final trueskill = _team!.statiq?['teamwork'] ??
-        _team!.statiq?['performance']; // "TrueSkill"
-    final epa = _team!.statiq?['epa'];
+    final worldRank = _worldSkillsData?['rank'] ?? _team!.worldRank;
+    final worldScore =
+        _worldSkillsData?['skills']?['combined'] ?? _worldSkillsData?['score'];
+    final trueskill = _team!.trueskill;
+    final trueSkillRank =
+        _team!.statiq?['globalRank'] ?? _team!.statiq?['programRank'];
+    final epa = _team!.statiq?['epa'] ?? _team!.statiq?['statiqScore'];
     // Grade label: "MS" or "ES"
-    final gradeLabel = _team!.grade == 'Elementary School'
-        ? 'ES'
-        : _team!.grade == 'Middle School'
-            ? 'MS'
-            : null;
+    final gradeLabel =
+        _team!.grade == 'Elementary School' || _team!.grade == 'ES'
+            ? 'ES'
+            : _team!.grade == 'Middle School' || _team!.grade == 'MS'
+                ? 'MS'
+                : null;
 
     return Column(
       children: [
@@ -340,9 +326,16 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                       if (_team!.location != null &&
                           _team!.location!.isNotEmpty) {
                         final parts = _team!.location!.split(', ');
-                        if (parts.isNotEmpty) {
-                          country = parts.last;
+                        // Iterate backwards to find a valid country
+                        for (final part in parts.reversed) {
+                          final emoji = CountryUtils.getFlagEmoji(part);
+                          if (emoji != '🌐') {
+                            country = part;
+                            break;
+                          }
                         }
+                        // Fallback to last part if we couldn't find a known country
+                        country ??= parts.last;
                       }
                       final flag = CountryUtils.getFlagEmoji(country);
                       return Text('$flag ${_team!.number}',
@@ -355,7 +348,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: primaryColor.withOpacity(0.15),
+                          color: primaryColor.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(gradeLabel,
@@ -372,7 +365,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                   children: [
                     CupertinoButton(
                       padding: EdgeInsets.zero,
-                      minSize: 0,
+                      minimumSize: Size.zero,
                       child: Icon(CupertinoIcons.link,
                           color: primaryColor, size: 22),
                       onPressed: () async {
@@ -386,7 +379,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                     const SizedBox(width: 16),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
-                      minSize: 0,
+                      minimumSize: Size.zero,
                       child: Icon(
                         isFavorite
                             ? CupertinoIcons.star_fill
@@ -420,7 +413,9 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
             _buildInfoRow(
                 'World Skills Score', worldScore?.toString() ?? 'N/A'),
             _buildInfoRow(
-                'TrueSkill', (trueskill as num?)?.toStringAsFixed(2) ?? 'N/A'),
+                'TrueSkill Ranking', trueSkillRank?.toString() ?? 'N/A'),
+            _buildInfoRow('TrueSkill Rating',
+                (trueskill as num?)?.toStringAsFixed(2) ?? 'N/A'),
             _buildEpaRow((epa as num?)?.toStringAsFixed(2) ?? 'N/A'),
           ],
         ),
@@ -438,6 +433,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
               ],
             ),
             onPressed: () {
+              FocusScope.of(context).unfocus();
               Navigator.of(context)
                   .pushNamed(AppRoutes.teamEvents, arguments: _team);
             },
@@ -529,9 +525,9 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen>
                         ),
                       );
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 4.0),
-                      child: const Icon(CupertinoIcons.info_circle,
+                    child: const Padding(
+                      padding: EdgeInsets.only(left: 4.0),
+                      child: Icon(CupertinoIcons.info_circle,
                           size: 18, color: CupertinoColors.systemGrey),
                     ),
                   ),

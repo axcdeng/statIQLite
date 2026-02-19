@@ -30,4 +30,37 @@ class AppConstants {
   static const String roboStemBaseUrl = 'https://api.robostem-api.org';
   static const String roboStemApiKey =
       '6ab1d415d0447945ff6e989a081fba659b7f2eb34ab3a2a07451a365aa6114f7';
+
+  // Common VEX IQ countries for autofill
+  static const List<String> vexIqCountries = [
+    'United States',
+    'China',
+    'Canada',
+    'United Kingdom',
+    'Australia',
+    'New Zealand',
+    'Hong Kong',
+    'Taiwan',
+    'Mexico',
+    'Ethiopia',
+    'South Korea',
+    'Japan',
+    'Kazakhstan',
+    'Thailand',
+    'Vietnam',
+    'Finland',
+    'Ghana',
+    'Ireland',
+    'Malaysia',
+    'Morocco',
+    'Panama',
+    'Paraguay',
+    'Philippines',
+    'Puerto Rico',
+    'Singapore',
+    'Spain',
+    'Tunisia',
+    'Turkey',
+    'United Arab Emirates',
+  ];
 }

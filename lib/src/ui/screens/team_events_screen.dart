@@ -111,7 +111,7 @@ class _TeamEventsScreenState extends ConsumerState<TeamEventsScreen> {
                                           .textTheme
                                           .textStyle
                                           .color
-                                          ?.withOpacity(0.6) ??
+                                          ?.withValues(alpha: 0.6) ??
                                       CupertinoColors.systemGrey)))
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -139,7 +139,7 @@ class _TeamEventsScreenState extends ConsumerState<TeamEventsScreen> {
                                           children: [
                                             Icon(CupertinoIcons.clock,
                                                 size: 16, color: primaryColor),
-                                            SizedBox(width: 8),
+                                            const SizedBox(width: 8),
                                             Text('Load Previous Seasons',
                                                 style: TextStyle(
                                                     color: primaryColor,
@@ -242,16 +242,34 @@ class _EventExpansionTileState extends ConsumerState<_EventExpansionTile> {
   }
 }
 
-class _EventDetails extends ConsumerWidget {
+class _EventDetails extends ConsumerStatefulWidget {
   final Event event;
   final Team team;
 
   const _EventDetails({required this.event, required this.team});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final matchesRepo = ref.watch(matchesRepositoryProvider);
-    final teamsRepo = ref.watch(teamsRepositoryProvider);
+  ConsumerState<_EventDetails> createState() => _EventDetailsState();
+}
+
+class _EventDetailsState extends ConsumerState<_EventDetails> {
+  late Future<List<MatchModel>> _matchesFuture;
+  late Future<List<Map<String, dynamic>>> _awardsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final matchesRepo = ref.read(matchesRepositoryProvider);
+    final teamsRepo = ref.read(teamsRepositoryProvider);
+
+    _matchesFuture = matchesRepo
+        .fetchMatches(widget.event.id)
+        .then((_) => matchesRepo.getMatchesForEvent(widget.event.id));
+    _awardsFuture = teamsRepo.getTeamAwards(widget.team.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Padding(
@@ -264,15 +282,17 @@ class _EventDetails extends ConsumerWidget {
             width: double.infinity,
             child: CupertinoButton(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              color: primaryColor.withOpacity(0.15),
+              color: primaryColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
               onPressed: () {
-                if (event.divisions != null && event.divisions!.length > 1) {
+                if (widget.event.divisions != null &&
+                    widget.event.divisions!.length > 1) {
                   Navigator.of(context).push(CupertinoPageRoute(
-                      builder: (_) => EventDivisionsScreen(event: event)));
+                      builder: (_) =>
+                          EventDivisionsScreen(event: widget.event)));
                 } else {
                   Navigator.of(context).push(CupertinoPageRoute(
-                      builder: (_) => EventDetailScreen(event: event)));
+                      builder: (_) => EventDetailScreen(event: widget.event)));
                 }
               },
               child: Row(
@@ -280,7 +300,7 @@ class _EventDetails extends ConsumerWidget {
                 children: [
                   Icon(CupertinoIcons.arrow_right_circle,
                       size: 16, color: primaryColor),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Text('View Full Event',
                       style: TextStyle(
                           color: primaryColor,
@@ -303,9 +323,7 @@ class _EventDetails extends ConsumerWidget {
                     letterSpacing: 0.5)),
           ),
           FutureBuilder<List<MatchModel>>(
-            future: matchesRepo
-                .fetchMatches(event.id)
-                .then((_) => matchesRepo.getMatchesForEvent(event.id)),
+            future: _matchesFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
@@ -316,8 +334,8 @@ class _EventDetails extends ConsumerWidget {
               final matches = snapshot.data ?? [];
               final teamMatches = matches
                   .where((m) =>
-                      m.redAllianceTeamIds.contains(team.id) ||
-                      m.blueAllianceTeamIds.contains(team.id))
+                      m.redAllianceTeamIds.contains(widget.team.id) ||
+                      m.blueAllianceTeamIds.contains(widget.team.id))
                   .toList();
 
               if (teamMatches.isEmpty) {
@@ -339,15 +357,16 @@ class _EventDetails extends ConsumerWidget {
 
           // Awards Section
           FutureBuilder<List<Map<String, dynamic>>>(
-            future: teamsRepo.getTeamAwards(team.id),
+            future: _awardsFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const SizedBox.shrink();
               }
 
               final allAwards = snapshot.data ?? [];
-              final eventAwards =
-                  allAwards.where((a) => a['event']['id'] == event.id).toList();
+              final eventAwards = allAwards
+                  .where((a) => a['event']['id'] == widget.event.id)
+                  .toList();
 
               if (eventAwards.isEmpty) return const SizedBox.shrink();
 

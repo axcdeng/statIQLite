@@ -155,7 +155,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           m.redAllianceTeamNums.contains(teamNumber) ||
           m.blueAllianceTeamNums.contains(teamNumber) ||
           m.redAllianceTeamIds.contains(team!.id) ||
-          m.blueAllianceTeamIds.contains(team!.id));
+          m.blueAllianceTeamIds.contains(team.id));
 
       for (final m in teamMatches) {
         if (m.redScore == null && m.blueScore == null) {
@@ -220,7 +220,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         });
       }
     } catch (e) {
-      print('Error fetching stats for $teamNumber: $e');
+      debugPrint('Error fetching stats for $teamNumber: $e');
       if (mounted) setState(() => _loading[teamNumber] = false);
     }
   }
@@ -244,8 +244,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       child: CupertinoPageScaffold(
         backgroundColor:
             CupertinoColors.systemGroupedBackground.resolveFrom(context),
-        navigationBar: CupertinoNavigationBar(
-          middle: const Text('Favorites'),
+        navigationBar: const CupertinoNavigationBar(
+          middle: Text('Favorites'),
         ),
         child: SafeArea(
           child: CustomScrollView(
@@ -267,7 +267,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                                 letterSpacing: 0.5)),
                         CupertinoButton(
                           padding: EdgeInsets.zero,
-                          minSize: 0,
+                          minimumSize: Size.zero,
                           onPressed: () {
                             ref
                                 .read(settingsProvider.notifier)
@@ -314,11 +314,23 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               ],
 
               // EVENTS SECTION
-              if (favEvents.isNotEmpty)
+              if (favEvents.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(32, 20, 16, 8),
+                    child: Text('EVENTS',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: CupertinoColors.secondaryLabel
+                                .resolveFrom(context),
+                            letterSpacing: 0.5)),
+                  ),
+                ),
                 SliverToBoxAdapter(
                   child: CupertinoListSection.insetGrouped(
-                    header: const Text('EVENTS'),
-                    margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    header: null,
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                     children: favEvents.map((event) {
                       return CupertinoListTile.notched(
                         key: ValueKey(event.sku),
@@ -351,6 +363,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     }).toList(),
                   ),
                 ),
+              ],
 
               // EMPTY STATE
               if (favTeams.isEmpty && favEvents.isEmpty)
@@ -512,9 +525,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: _primaryColor.withOpacity(0.1),
+                color: _primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _primaryColor.withOpacity(0.25)),
+                border:
+                    Border.all(color: _primaryColor.withValues(alpha: 0.25)),
               ),
               child: Row(
                 children: [
@@ -603,7 +617,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: _primaryColor.withOpacity(0.7)),
+                    color: _primaryColor.withValues(alpha: 0.7)),
               ),
             ),
           ],
@@ -631,7 +645,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              color: _primaryColor.withOpacity(0.12),
+              color: _primaryColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, size: 14, color: _primaryColor),

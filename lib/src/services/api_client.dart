@@ -1,17 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:roboscout_iq/src/constants.dart';
 import 'package:roboscout_iq/src/models/event_model.dart';
 import 'package:roboscout_iq/src/models/match_model.dart';
 import 'package:roboscout_iq/src/models/team_model.dart';
-import 'package:roboscout_iq/src/services/secure_storage_service.dart';
+
 import 'package:roboscout_iq/src/state/settings_provider.dart';
 
 class ApiClient {
   final Dio _dio;
-  final SecureStorageService _secureStorage;
+  // final SecureStorageService _secureStorage;
   final SettingsState _settings;
 
-  ApiClient(this._secureStorage, this._settings)
+  ApiClient(this._settings)
       : _dio = Dio(BaseOptions(
           baseUrl: AppConstants.robotEventsBaseUrl,
           connectTimeout: const Duration(seconds: 10),
@@ -19,16 +20,16 @@ class ApiClient {
         )) {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
-        print('REQ: ${options.method} ${options.path}');
+        debugPrint('REQ: ${options.method} ${options.path}');
         return handler.next(options);
       },
       onResponse: (response, handler) {
-        print(
+        debugPrint(
             'RES: ${response.statusCode} ${response.requestOptions.path} (${response.data.toString().length} bytes)');
         return handler.next(response);
       },
       onError: (DioException e, handler) {
-        print(
+        debugPrint(
             'ERR: ${e.response?.statusCode} ${e.requestOptions.path} - ${e.message}');
         return handler.next(e);
       },
@@ -48,7 +49,7 @@ class ApiClient {
       final isJwt = token.startsWith('eyJ');
 
       if (isRoboStemKey || !isJwt) {
-        print(
+        debugPrint(
             'WARNING: User provided RobotEvents Key looks invalid (RoboStem key? or not JWT). Using default key.');
         token = null; // Fallback to default
       }
@@ -82,9 +83,6 @@ class ApiClient {
 
       allItems.addAll(data.cast<Map<String, dynamic>>());
 
-      print(
-          'DEBUG _fetchAllPages: page $currentPage/${lastPage ?? "?"}, got ${data.length} items (total so far: ${allItems.length})');
-
       // Stop if we've reached the last page or got no data
       if (data.isEmpty || (lastPage != null && currentPage >= lastPage)) {
         break;
@@ -92,8 +90,6 @@ class ApiClient {
       currentPage++;
     }
 
-    print(
-        'DEBUG _fetchAllPages: DONE. Total items fetched: ${allItems.length}');
     return allItems;
   }
 
@@ -114,7 +110,7 @@ class ApiClient {
       });
 
       final events = allItems.map((json) => Event.fromJson(json)).toList();
-      print(
+      debugPrint(
           'DEBUG getEvents: Fetched ${events.length} events for range ${from.toIso8601String()} to ${to.toIso8601String()}');
       return events;
     } catch (e) {
@@ -163,31 +159,33 @@ class ApiClient {
 
   Future<List<Map<String, dynamic>>> _getDivisions(int eventId) async {
     try {
-      print(
+      debugPrint(
           'DEBUG _getDivisions: Fetching event details for $eventId to find divisions...');
       final response = await _dio.get('/events/$eventId');
       final data = response.data;
 
-      print('DEBUG _getDivisions: Response status ${response.statusCode}');
+      debugPrint('DEBUG _getDivisions: Response status ${response.statusCode}');
       if (data != null) {
         if (data is Map) {
-          print('DEBUG _getDivisions: Data keys: ${data.keys.toList()}');
+          debugPrint('DEBUG _getDivisions: Data keys: ${data.keys.toList()}');
           if (data['divisions'] != null) {
-            print('DEBUG _getDivisions: Found divisions: ${data['divisions']}');
+            debugPrint(
+                'DEBUG _getDivisions: Found divisions: ${data['divisions']}');
             return (data['divisions'] as List).cast<Map<String, dynamic>>();
           } else {
-            print('DEBUG _getDivisions: "divisions" key is null or missing.');
+            debugPrint(
+                'DEBUG _getDivisions: "divisions" key is null or missing.');
           }
         } else {
-          print(
+          debugPrint(
               'DEBUG _getDivisions: Data is not a Map! Type: ${data.runtimeType}');
         }
       } else {
-        print('DEBUG _getDivisions: Response data is null.');
+        debugPrint('DEBUG _getDivisions: Response data is null.');
       }
       return [];
     } catch (e) {
-      print('Error fetching event details for divisions: $e');
+      debugPrint('Error fetching event details for divisions: $e');
       return [];
     }
   }
@@ -213,7 +211,8 @@ class ApiClient {
               allMatches
                   .addAll(matches.map((json) => MatchModel.fromJson(json)));
             } catch (e) {
-              print('Warning: Failed to fetch matches for division $divId: $e');
+              debugPrint(
+                  'Warning: Failed to fetch matches for division $divId: $e');
             }
           }
           if (allMatches.isNotEmpty) {
@@ -221,13 +220,13 @@ class ApiClient {
           }
         }
       } catch (e) {
-        print(
+        debugPrint(
             'Warning: Failed to fetch divisions checks for event $eventId: $e');
       }
 
       // 2. Fallback: If no matches found via divisions, try direct endpoint
       if (!divisionFetchSuccess || allMatches.isEmpty) {
-        print(
+        debugPrint(
             'DEBUG: No matches from divisions, trying direct endpoint for event $eventId');
         try {
           final matches = await _fetchAllPages('/events/$eventId/matches', {},
@@ -235,9 +234,10 @@ class ApiClient {
           allMatches.addAll(matches.map((json) => MatchModel.fromJson(json)));
         } catch (e) {
           if (e is DioException && e.response?.statusCode == 404) {
-            print('DEBUG: Direct matches endpoint also 404 for event $eventId');
+            debugPrint(
+                'DEBUG: Direct matches endpoint also 404 for event $eventId');
           } else {
-            print('Error fetching direct matches: $e');
+            debugPrint('Error fetching direct matches: $e');
           }
         }
       }
@@ -263,50 +263,43 @@ class ApiClient {
     ));
 
     try {
-      print('DEBUG calling RoboStem: /api/skills/global with params: ${{
-        'program': 'VIQRC',
+      // Map grade level to new API values (elementary/es or middle/ms)
+      String grade = 'middle';
+      if (gradeLevel.toLowerCase().contains('elementary')) {
+        grade = 'elementary';
+      }
+
+      debugPrint(
+          'DEBUG calling RoboStem: /api/rankings/skills/world with params: ${{
+        'grade': grade,
         'limit': 100,
-        'grade_level': gradeLevel,
       }}');
 
-      final response = await dio.get('/api/skills/global', queryParameters: {
-        'program': 'VIQRC',
-        'limit': 100, // Reduced from 2500 for performance
-        'grade_level': gradeLevel,
+      final response =
+          await dio.get('/api/rankings/skills/world', queryParameters: {
+        'grade': grade,
+        'limit': 100,
       });
 
-      // RoboStem response structure might differ. Assuming standard list or {data: []}
       List<Map<String, dynamic>> rawList = [];
-      if (response.data is List) {
-        rawList = (response.data as List).cast<Map<String, dynamic>>();
-      } else if (response.data is Map && response.data['data'] is List) {
+      if (response.data is Map && response.data['data'] is List) {
         rawList = (response.data['data'] as List).cast<Map<String, dynamic>>();
+      } else if (response.data is List) {
+        rawList = (response.data as List).cast<Map<String, dynamic>>();
       }
 
-      // Client-side filter fallback (just in case API returns mixed results)
-      // The sample response shows 'grade_level': 'Middle School' or 'Elementary School'
-      final filteredList = rawList.where((item) {
-        final g = item['grade_level'];
-        // Compare loosely or exactly? Let's try exact match first
-        return g == gradeLevel;
-      }).toList();
-
-      if (filteredList.length < rawList.length) {
-        print(
-            'DEBUG: Client-side filtered ${rawList.length - filteredList.length} items that did not match $gradeLevel');
-      }
-
-      return filteredList;
+      return rawList;
     } catch (e) {
       if (e is DioException) {
-        print('RoboStem API Error: ${e.message} ${e.response?.statusCode}');
+        debugPrint(
+            'RoboStem API Error: ${e.message} ${e.response?.statusCode}');
       }
       return [];
     }
   }
 
   Future<List<Team>> getGlobalTrueSkillRankings(
-      {String gradeLevel = 'Middle School'}) async {
+      {String? country, int limit = 100}) async {
     // RoboStem API uses a different base URL and key
     final token = _settings.roboStemApiKey ?? AppConstants.roboStemApiKey;
     final dio = Dio(BaseOptions(
@@ -320,21 +313,35 @@ class ApiClient {
     ));
 
     try {
-      final response = await dio.get('/api/rankings/statiq', queryParameters: {
-        'program': 'VIQRC',
-        'limit': 100, // Reduced from 2500 for performance
-        'grade_level': gradeLevel,
+      // Use the pure TrueSkill endpoint
+      final response =
+          await dio.get('/api/rankings/trueskill/pure', queryParameters: {
+        'season': 196, // Fixed season for now as requested
+        'limit': limit,
+        if (country != null && country.isNotEmpty) 'country': country,
       });
 
-      // RoboStem response structure might differ. Assuming standard list or {data: []}
       List<Map<String, dynamic>> rawList = [];
-      if (response.data is List) {
-        rawList = (response.data as List).cast<Map<String, dynamic>>();
-      } else if (response.data is Map && response.data['data'] is List) {
+      if (response.data is Map && response.data['data'] is List) {
         rawList = (response.data['data'] as List).cast<Map<String, dynamic>>();
+      } else if (response.data is List) {
+        rawList = (response.data as List).cast<Map<String, dynamic>>();
       }
 
-      return rawList.map((json) => Team.fromJson(json)).toList();
+      return rawList.map((json) {
+        if (json.containsKey('team') && json['team'] is Map) {
+          final teamData = Map<String, dynamic>.from(json['team'] as Map);
+          // Ensure we have the top-level keys in teamData if they are not in the team sub-object
+          // For pure endpoint, trueskill object is at top level
+          teamData['trueskill_data'] = json['trueskill'];
+          teamData['rank'] = json['rank'];
+          teamData['programRank'] =
+              json['programRank']; // Pure endpoint has this
+          teamData['gradeLevel'] = json['gradeLevel'] ?? teamData['gradeLevel'];
+          return Team.fromJson(teamData);
+        }
+        return Team.fromJson(json);
+      }).toList();
     } catch (e) {
       return [];
     }
@@ -389,13 +396,15 @@ class ApiClient {
             // Merge RoboStem stats into the RobotEvents team
             final enriched = Team.fromJson(roboStemMatch.first);
             return [
-              enriched.copyWith(
-                id: reTeam.id, // Keep RobotEvents ID for match lookups
+              reTeam.copyWith(
+                statiq: enriched.statiq,
+                trueskill: enriched.trueskill,
+                worldRank: reTeam.worldRank ?? enriched.worldRank,
               )
             ];
           }
         } catch (e) {
-          print('RoboStem enrichment failed, using RobotEvents data: $e');
+          debugPrint('RoboStem enrichment failed, using RobotEvents data: $e');
         }
 
         // Return RobotEvents team even without RoboStem enrichment
@@ -437,7 +446,7 @@ class ApiClient {
       return data.map((json) => Team.fromJson(json)).toList();
     } catch (e) {
       if (e is DioException) {
-        print('RoboStem API Search Error: ${e.message}');
+        debugPrint('RoboStem API Search Error: ${e.message}');
       }
       return [];
     }
@@ -484,7 +493,7 @@ class ApiClient {
       }
       return null;
     } catch (e) {
-      print('Error fetching team skill rank: $e');
+      debugPrint('Error fetching team skill rank: $e');
       return null;
     }
   }
@@ -531,7 +540,7 @@ class ApiClient {
 
       final allItems = await _fetchAllPages('/events', queryParams);
       final events = allItems.map((json) => Event.fromJson(json)).toList();
-      print(
+      debugPrint(
           'DEBUG searchEvents: Found ${events.length} events (name=$name, start=$start, end=$end)');
       return events;
     } catch (e) {
@@ -559,7 +568,37 @@ class ApiClient {
           }
           allRankings.addAll(pages);
         } catch (e) {
-          print('Error fetching rankings for division $divId: $e');
+          debugPrint('Error fetching rankings for division $divId: $e');
+        }
+      }
+      return allRankings;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getFinalistRankings(int eventId) async {
+    await _addAuthHeader();
+    try {
+      final divisions = await _getDivisions(eventId);
+      final allRankings = <Map<String, dynamic>>[];
+
+      for (final div in divisions) {
+        final divId = div['id'];
+        try {
+          final pages = await _fetchAllPages(
+            '/events/$eventId/divisions/$divId/finalistRankings',
+            {},
+            perPage: 250,
+          );
+          // Inject division ID
+          for (var item in pages) {
+            item['divisionId'] = divId;
+          }
+          allRankings.addAll(pages);
+        } catch (e) {
+          debugPrint(
+              'Error fetching finalist rankings for division $divId: $e');
         }
       }
       return allRankings;
@@ -600,7 +639,7 @@ class ApiClient {
             }
             allSkills.addAll(pages);
           } catch (e) {
-            print('Error fetching skills for division $divId: $e');
+            debugPrint('Error fetching skills for division $divId: $e');
           }
         }
       }
@@ -615,7 +654,7 @@ class ApiClient {
           );
           allSkills.addAll(pages);
         } catch (e) {
-          print('Error fetching direct skills for event $eventId: $e');
+          debugPrint('Error fetching direct skills for event $eventId: $e');
         }
       }
 
@@ -629,12 +668,11 @@ class ApiClient {
     await _addAuthHeader();
     try {
       final queryParams = <String, dynamic>{};
-      if (seasonId != null) queryParams['season'] = seasonId;
+      if (seasonId != null) queryParams['season[]'] = seasonId;
 
-      final response =
-          await _dio.get('/teams/$teamId/events', queryParameters: queryParams);
-      final data = response.data['data'] as List;
-      return data.map((json) => Event.fromJson(json)).toList();
+      final allItems =
+          await _fetchAllPages('/teams/$teamId/events', queryParams);
+      return allItems.map((json) => Event.fromJson(json)).toList();
     } catch (e) {
       rethrow;
     }

@@ -1,7 +1,7 @@
 name: roboscout_iq
 description: An offline-first VEX IQ scouting app.
 publish_to: 'none'
-version: 1.0.1+1
+version: 1.1.0+1
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -15,6 +15,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   json_annotation: ^4.8.0
+  freezed_annotation: ^2.2.0
   flutter_secure_storage: ^8.0.0
   csv: ^5.0.0
   excel: ^2.0.0
@@ -32,9 +33,8 @@ dev_dependencies:
     sdk: flutter
   build_runner: ^2.4.0
   freezed: ^2.2.0
-  freezed_annotation: ^2.2.0
+
   json_serializable: ^6.5.0
-  json_annotation: ^4.8.0
   hive_generator: ^2.0.0
   flutter_lints: ^2.0.0
   flutter_launcher_icons: ^0.13.1

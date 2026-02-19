@@ -7,7 +7,7 @@ import 'package:share_plus/share_plus.dart';
 class ExportService {
   Future<void> shareScoutEntriesCsv(List<ScoutEntry> entries) async {
     final List<List<dynamic>> rows = [];
-    
+
     // Header
     rows.add([
       'Event ID',
@@ -17,7 +17,7 @@ class ExportService {
       'Timestamp',
       'Notes',
       // Dynamic fields logic would go here to flatten the map
-      'Data Fields (JSON)' 
+      'Data Fields (JSON)'
     ]);
 
     for (var entry in entries) {
@@ -35,9 +35,11 @@ class ExportService {
     String csv = const ListToCsvConverter().convert(rows);
 
     final directory = await getApplicationDocumentsDirectory();
-    final file = File('${directory.path}/roboscout_export_${DateTime.now().millisecondsSinceEpoch}.csv');
+    final file = File(
+        '${directory.path}/roboscout_export_${DateTime.now().millisecondsSinceEpoch}.csv');
     await file.writeAsString(csv);
 
+    // ignore: deprecated_member_use
     await Share.shareXFiles([XFile(file.path)], text: 'RoboScout IQ Export');
   }
 }

@@ -1,3 +1,4 @@
+// ignore_for_file: library_private_types_in_public_api
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hive/hive.dart';
 
@@ -18,5 +19,6 @@ class ScoutEntry with _$ScoutEntry {
     @HiveField(7) required String scoutName,
   }) = _ScoutEntry;
 
-  factory ScoutEntry.fromJson(Map<String, dynamic> json) => _$ScoutEntryFromJson(json);
+  factory ScoutEntry.fromJson(Map<String, dynamic> json) =>
+      _$ScoutEntryFromJson(json);
 }

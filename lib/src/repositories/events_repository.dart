@@ -14,6 +14,7 @@ class EventsRepository {
 
   // In-memory cache for event details
   final Map<int, List<Map<String, dynamic>>> _rankingsCache = {};
+  final Map<int, List<Map<String, dynamic>>> _finalistRankingsCache = {};
   final Map<int, List<Map<String, dynamic>>> _skillsCache = {};
   final Map<int, List<Map<String, dynamic>>> _awardsCache = {};
 
@@ -25,7 +26,7 @@ class EventsRepository {
     try {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      print('DEBUG basicSync: Starting. Today=$today');
+      debugPrint('DEBUG basicSync: Starting. Today=$today');
 
       // Batch 1: Recent + Near Future (-14 days to +30 days)
       final immediateEvents = await _apiClient.getEvents(
@@ -48,7 +49,7 @@ class EventsRepository {
         seasonId: _settings.primarySeasonId,
       );
 
-      print(
+      debugPrint(
           'DEBUG basicSync: Fetched ${immediateEvents.length} immediate, ${futureEvents.length} future, ${pastEvents.length} past events.');
 
       // Merge all events by ID
@@ -59,10 +60,10 @@ class EventsRepository {
       };
 
       await _localDb.eventsBox.putAll(allEvents);
-      print(
+      debugPrint(
           'DEBUG basicSync: Stored ${allEvents.length} events in Hive. Box now has ${_localDb.eventsBox.length} entries.');
     } catch (e) {
-      print('Sync failed: $e');
+      debugPrint('Sync failed: $e');
     }
   }
 
@@ -84,7 +85,7 @@ class EventsRepository {
       await _localDb.eventsBox.put(id, event);
       return event;
     } catch (e) {
-      print('Error getting event $id: $e');
+      debugPrint('Error getting event $id: $e');
       return null;
     }
   }
@@ -104,6 +105,15 @@ class EventsRepository {
     }
     final data = await _apiClient.getEventRankings(eventId);
     _rankingsCache[eventId] = data;
+    return data;
+  }
+
+  Future<List<Map<String, dynamic>>> getFinalistRankings(int eventId) async {
+    if (_finalistRankingsCache.containsKey(eventId)) {
+      return _finalistRankingsCache[eventId]!;
+    }
+    final data = await _apiClient.getFinalistRankings(eventId);
+    _finalistRankingsCache[eventId] = data;
     return data;
   }
 
@@ -129,7 +139,7 @@ class EventsRepository {
         await _localDb.eventsBox.putAll({for (var e in remoteEvents) e.id: e});
         localEvents.addAll(remoteEvents);
       } catch (e) {
-        print('Error fetching missing events via SKUs: $e');
+        debugPrint('Error fetching missing events via SKUs: $e');
       }
     }
 

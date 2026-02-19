@@ -122,7 +122,7 @@ class _FieldDiagramCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: CupertinoColors.black.withOpacity(0.6),
+                        color: CupertinoColors.black.withValues(alpha: 0.6),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Icon(

@@ -8,6 +8,9 @@ class MatchesRepository {
   final ApiClient _apiClient;
   final LocalDbService _localDb;
 
+  // In-memory cache for matches
+  final Map<int, List<MatchModel>> _eventMatchesCache = {};
+
   MatchesRepository(this._apiClient, this._localDb);
 
   Future<void> fetchMatches(int eventId) async {
@@ -30,11 +33,17 @@ class MatchesRepository {
       // 4. Delete stale matches
       if (staleIds.isNotEmpty) {
         await _localDb.matchesBox.deleteAll(staleIds);
-        print('Removed ${staleIds.length} stale matches for event $eventId');
+        debugPrint(
+            'Removed ${staleIds.length} stale matches for event $eventId');
       }
 
       // 5. Save new/updated matches
       await _localDb.matchesBox.putAll({for (var m in matches) m.id: m});
+
+      // 6. Update cache
+      _eventMatchesCache[eventId] = List<MatchModel>.from(matches)
+        ..sort((a, b) => (a.scheduledTime ?? DateTime(0))
+            .compareTo(b.scheduledTime ?? DateTime(0)));
     } catch (e) {
       rethrow;
     }
@@ -45,11 +54,27 @@ class MatchesRepository {
   }
 
   List<MatchModel> getMatchesForEvent(int eventId) {
-    // Filter by eventId
-    return _localDb.matchesBox.values
+    // 1. Check cache first
+    if (_eventMatchesCache.containsKey(eventId)) {
+      return _eventMatchesCache[eventId]!;
+    }
+
+    // 2. Fallback to box scan
+    final matches = _localDb.matchesBox.values
         .where((m) => m.eventId == eventId)
         .toList()
       ..sort((a, b) => (a.scheduledTime ?? DateTime(0))
           .compareTo(b.scheduledTime ?? DateTime(0)));
+
+    // 3. Update cache for next time
+    if (matches.isNotEmpty) {
+      _eventMatchesCache[eventId] = matches;
+    }
+
+    return matches;
+  }
+
+  void clearCache() {
+    _eventMatchesCache.clear();
   }
 }

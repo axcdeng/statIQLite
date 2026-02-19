@@ -1,38 +1,41 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:roboscout_iq/src/state/providers.dart';
 import 'package:roboscout_iq/src/ui/screens/resources/game_manual_tab.dart';
 import 'package:roboscout_iq/src/ui/screens/resources/score_calculator_tab.dart';
 import 'package:roboscout_iq/src/ui/screens/resources/field_setup_tab.dart';
 import 'package:roboscout_iq/src/ui/screens/resources/match_timer_tab.dart';
 
-class ResourcesScreen extends StatefulWidget {
+class ResourcesScreen extends ConsumerStatefulWidget {
   const ResourcesScreen({super.key});
 
   @override
-  State<ResourcesScreen> createState() => _ResourcesScreenState();
+  ConsumerState<ResourcesScreen> createState() => _ResourcesScreenState();
 }
 
-class _ResourcesScreenState extends State<ResourcesScreen> {
-  int _selectedTab = 0;
-
+class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
   static const _tabLabels = ['Manual', 'Calculator', 'Field', 'Timer'];
-  static const _tabs = [
-    GameManualTab(),
-    ScoreCalculatorTab(),
-    FieldSetupTab(),
-    MatchTimerTab(),
-  ];
+
+  List<Widget> _getTabs(int selectedTab) => [
+        const GameManualTab(),
+        const ScoreCalculatorTab(),
+        const FieldSetupTab(),
+        MatchTimerTab(isActive: selectedTab == 3),
+      ];
 
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
+    final selectedTab = ref.watch(resourcesTabProvider);
+    final tabs = _getTabs(selectedTab);
 
     return Material(
       color: Colors.transparent,
       child: CupertinoPageScaffold(
         backgroundColor: CupertinoColors.systemGroupedBackground,
-        navigationBar: CupertinoNavigationBar(
-          middle: const Text('Resources'),
+        navigationBar: const CupertinoNavigationBar(
+          middle: Text('Resources'),
         ),
         child: SafeArea(
           child: Column(
@@ -46,7 +49,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                   child: CupertinoSlidingSegmentedControl<int>(
                     thumbColor: primaryColor,
                     backgroundColor: CupertinoColors.tertiarySystemFill,
-                    groupValue: _selectedTab,
+                    groupValue: selectedTab,
                     children: {
                       for (int i = 0; i < _tabLabels.length; i++)
                         i: Padding(
@@ -57,7 +60,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
-                              color: _selectedTab == i
+                              color: selectedTab == i
                                   ? Theme.of(context).colorScheme.onPrimary
                                   : CupertinoColors.secondaryLabel
                                       .resolveFrom(context),
@@ -67,7 +70,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                     },
                     onValueChanged: (int? value) {
                       if (value != null) {
-                        setState(() => _selectedTab = value);
+                        ref.read(resourcesTabProvider.notifier).state = value;
                       }
                     },
                   ),
@@ -77,8 +80,8 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
               // Tab content
               Expanded(
                 child: IndexedStack(
-                  index: _selectedTab,
-                  children: _tabs,
+                  index: selectedTab,
+                  children: tabs,
                 ),
               ),
             ],

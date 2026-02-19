@@ -1,9 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'package:path_provider/path_provider.dart';
 
 class PDFViewerScreen extends StatefulWidget {
   final String filePath;
@@ -66,13 +63,13 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
                 setState(() {
                   errorMessage = error.toString();
                 });
-                print(error.toString());
+                debugPrint(error.toString());
               },
               onPageError: (page, error) {
                 setState(() {
                   errorMessage = '$page: ${error.toString()}';
                 });
-                print('$page: ${error.toString()}');
+                debugPrint('$page: ${error.toString()}');
               },
               onViewCreated: (PDFViewController pdfViewController) {
                 // Controller can be used here if needed

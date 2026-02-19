@@ -46,10 +46,10 @@ class MatchDetailScreen extends ConsumerWidget {
                       .resolveFrom(context),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                      color: CupertinoColors.separator.withOpacity(0.2)),
+                      color: CupertinoColors.separator.withValues(alpha: 0.2)),
                   boxShadow: [
                     BoxShadow(
-                      color: CupertinoColors.systemGrey.withOpacity(0.05),
+                      color: CupertinoColors.systemGrey.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -85,7 +85,7 @@ class MatchDetailScreen extends ConsumerWidget {
                     arguments: {'match': match},
                   );
                 },
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(CupertinoIcons.doc_text_viewfinder),
@@ -115,9 +115,9 @@ class _AllianceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

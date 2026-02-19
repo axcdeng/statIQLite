@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roboscout_iq/src/models/team_model.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
+import 'package:roboscout_iq/src/constants.dart';
 
 // Standalone sort function for isolate
 List<Map<String, dynamic>> _sortSkillsList(List<dynamic> input) {
@@ -42,11 +43,22 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
 
   String _gradeLevel = 'Middle School'; // Default selection
   String _metric = 'Skills'; // 'Skills', 'TrueSkill', 'EPA'
+  String? _selectedCountry;
+
+  late TextEditingController _countryController;
+  List<String> _suggestions = [];
 
   @override
   void initState() {
     super.initState();
+    _countryController = TextEditingController();
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _countryController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchData(
@@ -82,8 +94,10 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
           });
         }
       } else if (_metric == 'TrueSkill') {
-        final results =
-            await repo.getGlobalTrueSkillRankings(forceRefresh: forceRefresh);
+        final results = await repo.getGlobalTrueSkillRankings(
+          country: _selectedCountry,
+          forceRefresh: forceRefresh,
+        );
 
         if (mounted) {
           setState(() {
@@ -204,6 +218,7 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                         if (value != null) {
                           setState(() {
                             _gradeLevel = value;
+                            _fetchData();
                           });
                         }
                       },
@@ -232,6 +247,96 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                         ),
                       },
                     ),
+                  ),
+                ),
+
+              // Country Filter for TrueSkill (with Autofill Suggestions)
+              if (_metric == 'TrueSkill')
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0)
+                      .copyWith(bottom: 12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CupertinoSearchTextField(
+                        controller: _countryController,
+                        placeholder: 'Country',
+                        onChanged: (value) {
+                          setState(() {
+                            if (value.trim().isEmpty) {
+                              _suggestions = [];
+                              if (_selectedCountry != null) {
+                                _selectedCountry = null;
+                                _fetchData();
+                              }
+                            } else {
+                              _suggestions = AppConstants.vexIqCountries
+                                  .where((c) => c
+                                      .toLowerCase()
+                                      .startsWith(value.toLowerCase()))
+                                  .toList();
+                              // Don't show suggestion if exact match
+                              if (_suggestions.length == 1 &&
+                                  _suggestions.first.toLowerCase() ==
+                                      value.trim().toLowerCase()) {
+                                _suggestions = [];
+                              }
+                            }
+                          });
+                        },
+                        onSubmitted: (value) {
+                          setState(() {
+                            _selectedCountry =
+                                value.trim().isEmpty ? null : value.trim();
+                            _suggestions = [];
+                            _fetchData();
+                          });
+                        },
+                      ),
+                      if (_suggestions.isNotEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors
+                                .secondarySystemGroupedBackground
+                                .resolveFrom(context),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            padding: EdgeInsets.zero,
+                            itemCount: _suggestions.length,
+                            itemBuilder: (context, index) {
+                              final suggestion = _suggestions[index];
+                              return CupertinoButton(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 10),
+                                alignment: Alignment.centerLeft,
+                                child: Text(suggestion,
+                                    style: TextStyle(
+                                        color: CupertinoColors.label
+                                            .resolveFrom(context))),
+                                onPressed: () {
+                                  setState(() {
+                                    _countryController.text = suggestion;
+                                    _selectedCountry = suggestion;
+                                    _suggestions = [];
+                                    _fetchData();
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                    ],
                   ),
                 ),
 
@@ -311,9 +416,12 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
     final team = teamRaw is Map ? Map<String, dynamic>.from(teamRaw) : {};
     final number = team['number'] ?? '';
     final name = team['name'] ?? '';
-    final score = item['score'];
-    final prog = item['programming'];
-    final driver = item['driver'];
+    final skills = item['skills'] != null
+        ? Map<String, dynamic>.from(item['skills'])
+        : null;
+    final score = skills?['combined'] ?? item['score'] ?? 0;
+    final prog = skills?['programming'] ?? item['programming'] ?? 0;
+    final driver = skills?['driver'] ?? item['driver'] ?? 0;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return GestureDetector(
@@ -336,15 +444,16 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
         ),
         child: Row(
           children: [
-            // Rank Circle
+            // Rank Container
             Container(
-              width: 32,
-              height: 32,
+              constraints: const BoxConstraints(minWidth: 36),
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: CupertinoColors.systemGroupedBackground
                     .resolveFrom(context),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(18),
               ),
               child: Text('$rank',
                   style: TextStyle(
@@ -418,8 +527,8 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
   Widget _buildTrueSkillTile(Team team, int rank, BuildContext context) {
     final number = team.number;
     final name = team.name;
-    // According to memory, 'teamwork' maps to trueskill rating (Mu)
-    final score = team.statiq?['teamwork'] ?? 0.0;
+    // Use trueskill from model which robustly handles new API structure
+    final score = team.trueskill ?? 0.0;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return GestureDetector(
@@ -442,21 +551,53 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
         ),
         child: Row(
           children: [
-            // Rank Circle
+            // Rank Container
             Container(
-              width: 32,
-              height: 32,
+              constraints: const BoxConstraints(minWidth: 36),
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: CupertinoColors.systemGroupedBackground
                     .resolveFrom(context),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(18),
               ),
-              child: Text('$rank',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: CupertinoColors.label.resolveFrom(context))),
+              child: _selectedCountry != null
+                  ? RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${team.worldRank ?? "?"}',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                color: CupertinoColors.systemGrey
+                                    .resolveFrom(context)),
+                          ),
+                          TextSpan(
+                            text: ' / ',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                color:
+                                    CupertinoColors.label.resolveFrom(context)),
+                          ),
+                          TextSpan(
+                            text: '$rank',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color:
+                                    CupertinoColors.label.resolveFrom(context)),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Text('$rank',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: CupertinoColors.label.resolveFrom(context))),
             ),
             const SizedBox(width: 12),
             // Team Info

@@ -33,7 +33,6 @@ final settingsProvider =
 });
 
 final apiClientProvider = Provider((ref) => ApiClient(
-      ref.read(secureStorageServiceProvider),
       ref.watch(settingsProvider),
     ));
 
@@ -72,6 +71,9 @@ final leaderboardRepositoryProvider = Provider((ref) => LeaderboardRepository(
 final bottomNavIndexProvider =
     StateProvider<int>((ref) => 0); // Default to Favorites
 final teamSearchQueryProvider = StateProvider<String?>((ref) => null);
+
+// Resources Tab State (0: Manual, 1: Calculator, 2: Field, 3: Timer)
+final resourcesTabProvider = StateProvider<int>((ref) => 0);
 
 class ReturnToEventState {
   final int eventId;

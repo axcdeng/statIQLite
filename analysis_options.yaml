@@ -1,5 +1,8 @@
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    - lib/src/models/scout_entry_model.g.dart
 linter:
   rules:
     public_member_api_docs: false

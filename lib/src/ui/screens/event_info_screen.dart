@@ -37,7 +37,7 @@ class _EventInfoScreenState extends ConsumerState<EventInfoScreen> {
         });
       }
     } catch (e) {
-      print('Error fetching full event details: $e');
+      debugPrint('Error fetching full event details: $e');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

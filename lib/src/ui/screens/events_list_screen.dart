@@ -396,7 +396,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                     const SizedBox(width: 8),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
-                      minSize: 0,
+                      minimumSize: Size.zero,
                       child: Icon(CupertinoIcons.clock, color: primaryColor),
                       onPressed: () => _showHistory(context),
                     ),
@@ -596,7 +596,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: isCurrentWeek
-                                ? primaryColor.withOpacity(0.15)
+                                ? primaryColor.withValues(alpha: 0.15)
                                 : CupertinoColors
                                     .tertiarySystemGroupedBackground
                                     .resolveFrom(context),
@@ -665,6 +665,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
 
     return GestureDetector(
       onTap: () {
+        FocusScope.of(context).unfocus();
         ref.read(historyServiceProvider).addEventToHistory(event);
         if (event.divisions != null && event.divisions!.length > 1) {
           Navigator.of(context).push(CupertinoPageRoute(
@@ -764,7 +765,7 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isAnyFilterApplied
-                      ? CupertinoColors.systemRed.withOpacity(0.1)
+                      ? CupertinoColors.systemRed.withValues(alpha: 0.1)
                       : CupertinoColors.systemGrey5.resolveFrom(context),
                   shape: BoxShape.circle,
                 ),
@@ -1001,11 +1002,27 @@ class _SelectionScreenState extends State<_SelectionScreen> {
     super.dispose();
   }
 
+  String? _lastScrolledChar;
+
   void _scrollToAlpha(String char) {
+    if (_lastScrolledChar == char) return;
+    _lastScrolledChar = char;
     final key = _alphaKeys[char];
     if (key?.currentContext != null) {
       Scrollable.ensureVisible(key!.currentContext!,
-          duration: const Duration(milliseconds: 300));
+          duration: const Duration(milliseconds: 100)); // Faster duration
+    }
+  }
+
+  void _handleIndexDrag(Offset localPosition, double totalHeight,
+      Map<String, List<String>> grouped) {
+    const String alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    // Calculate index based on vertical position relative to total height
+    int index = (localPosition.dy / totalHeight * alphabet.length).floor();
+    index = index.clamp(0, alphabet.length - 1);
+    final char = alphabet[index];
+    if (grouped.containsKey(char)) {
+      _scrollToAlpha(char);
     }
   }
 
@@ -1179,41 +1196,54 @@ class _SelectionScreenState extends State<_SelectionScreen> {
                     ),
                     // Alpha Index Bar
                     if (widget.showAlphaIndex)
-                      Container(
-                        width: 30,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-                                .split('')
-                                .map((char) {
-                              final hasItems = grouped.containsKey(char);
-                              return GestureDetector(
-                                onTap: hasItems
-                                    ? () => _scrollToAlpha(char)
-                                    : null,
-                                child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 2.0),
-                                  child: Text(
-                                    char,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      decoration: TextDecoration.none,
-                                      color: hasItems
-                                          ? primaryColor
-                                          : CupertinoColors.systemGrey4,
+                      LayoutBuilder(builder: (context, constraints) {
+                        return GestureDetector(
+                          onVerticalDragUpdate: (details) {
+                            _handleIndexDrag(details.localPosition,
+                                constraints.maxHeight, grouped);
+                          },
+                          onVerticalDragStart: (details) {
+                            _handleIndexDrag(details.localPosition,
+                                constraints.maxHeight, grouped);
+                          },
+                          onTapDown: (details) {
+                            _handleIndexDrag(details.localPosition,
+                                constraints.maxHeight, grouped);
+                          },
+                          child: Container(
+                            width: 30,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            color: Colors.transparent, // Ensure it catches taps
+                            child: SingleChildScrollView(
+                              physics: const NeverScrollableScrollPhysics(),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                                    .split('')
+                                    .map((char) {
+                                  final hasItems = grouped.containsKey(char);
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 2.0),
+                                    child: Text(
+                                      char,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.none,
+                                        color: hasItems
+                                            ? primaryColor
+                                            : CupertinoColors.systemGrey4,
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      }),
                   ],
                 ),
               ),

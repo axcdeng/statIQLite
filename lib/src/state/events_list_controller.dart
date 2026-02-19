@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 
 import 'package:roboscout_iq/src/models/event_model.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
@@ -127,6 +128,7 @@ class EventsListController extends StateNotifier<EventsListState> {
   int _currentComputeId = 0;
   List<String> _cachedAvailableCountries = [];
   bool _countriesComputed = false;
+  Timer? _recomputeTimer;
 
   EventsListController(this._ref) : super(const EventsListState()) {
     _initializeWeeks();
@@ -145,6 +147,7 @@ class EventsListController extends StateNotifier<EventsListState> {
 
   @override
   void dispose() {
+    _recomputeTimer?.cancel();
     final eventsRepo = _ref.read(eventsRepositoryProvider);
     eventsRepo.watchEvents().removeListener(_onDataChanged);
     super.dispose();
@@ -214,55 +217,58 @@ class EventsListController extends StateNotifier<EventsListState> {
   // ---------------------------------------------------------------------------
 
   Future<void> _recompute() async {
-    final computeId = ++_currentComputeId;
+    _recomputeTimer?.cancel();
+    _recomputeTimer = Timer(const Duration(milliseconds: 100), () async {
+      final computeId = ++_currentComputeId;
 
-    // Yield to let UI render loading state first
-    await Future.microtask(() {});
-    if (computeId != _currentComputeId) return;
+      // Yield to let UI render loading state first
+      await Future.microtask(() {});
+      if (!mounted || computeId != _currentComputeId) return;
 
-    // 1. Get all events
-    final eventsRepo = _ref.read(eventsRepositoryProvider);
-    final allEvents = eventsRepo.getAllEvents(); // Synchronous Hive read
+      // 1. Get all events
+      final eventsRepo = _ref.read(eventsRepositoryProvider);
+      final allEvents = eventsRepo.getAllEvents(); // Synchronous Hive read
 
-    // 2. Prepare params for isolation
-    // Optimization: Compute countries only once per data change
-    if (!_countriesComputed) {
-      _cachedAvailableCountries = allEvents
-          .map((e) => e.country)
-          .whereType<String>()
-          .toSet()
-          .toList()
-        ..sort();
-      _countriesComputed = true;
-    }
+      // 2. Prepare params for isolation
+      // Optimization: Compute countries only once per data change
+      if (!_countriesComputed) {
+        _cachedAvailableCountries = allEvents
+            .map((e) => e.country)
+            .whereType<String>()
+            .toSet()
+            .toList()
+          ..sort();
+        _countriesComputed = true;
+      }
 
-    final params = _ComputeParams(
-      allEvents: allEvents,
-      weeks: state.weeks,
-      filters: state.filters,
-      availableCountries: _cachedAvailableCountries,
-    );
-
-    // 3. Mark indexing (optional UI feedback)
-    // state = state.copyWith(isIndexing: true);
-
-    // 4. Compute
-    _ComputeResult result;
-    if (allEvents.length > 500) {
-      result = await compute(_buildWeekCacheIsolated, params);
-    } else {
-      result = _buildWeekCacheIsolated(params);
-    }
-
-    // 5. Update state
-    if (mounted && computeId == _currentComputeId) {
-      state = state.copyWith(
-        weekCache: result.weekCache,
-        populatedWeekIndices: result.populatedWeekIndices,
+      final params = _ComputeParams(
+        allEvents: allEvents,
+        weeks: state.weeks,
+        filters: state.filters,
         availableCountries: _cachedAvailableCountries,
-        isIndexing: false,
       );
-    }
+
+      // 3. Mark indexing (optional UI feedback)
+      // state = state.copyWith(isIndexing: true);
+
+      // 4. Compute
+      _ComputeResult result;
+      if (allEvents.length > 500) {
+        result = await compute(_buildWeekCacheIsolated, params);
+      } else {
+        result = _buildWeekCacheIsolated(params);
+      }
+
+      // 5. Update state
+      if (mounted && computeId == _currentComputeId) {
+        state = state.copyWith(
+          weekCache: result.weekCache,
+          populatedWeekIndices: result.populatedWeekIndices,
+          availableCountries: _cachedAvailableCountries,
+          isIndexing: false,
+        );
+      }
+    });
   }
 }
 
