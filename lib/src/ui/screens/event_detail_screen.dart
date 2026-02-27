@@ -1030,13 +1030,40 @@ class _AwardsList extends ConsumerWidget {
         for (final award in awards) {
           final title = award['title'] ?? 'Award';
           final teamWinners = award['teamWinners'] as List? ?? [];
+          final qualifications = award['qualifications'] as List? ?? [];
+          final qualifiesToWorld = qualifications
+              .any((q) => q.toString().toLowerCase().contains('world'));
+
+          Widget titleWidget;
+          if (qualifiesToWorld) {
+            titleWidget = Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: title),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 6.0),
+                      child: Icon(CupertinoIcons.globe,
+                          size: 16, color: primaryColor),
+                    ),
+                  ),
+                ],
+              ),
+              maxLines: null,
+              softWrap: true,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            );
+          } else {
+            titleWidget = Text(title,
+                maxLines: null,
+                softWrap: true,
+                style: const TextStyle(fontWeight: FontWeight.w600));
+          }
 
           if (teamWinners.isEmpty) {
             displayItems.add(CupertinoListTile.notched(
-              title: Text(title,
-                  maxLines: null,
-                  softWrap: true,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              title: titleWidget,
               leading: const Icon(CupertinoIcons.gift,
                   color: CupertinoColors.systemGrey),
             ));
@@ -1046,10 +1073,7 @@ class _AwardsList extends ConsumerWidget {
               final num = teamMap?['name'] ?? 'Unknown';
               final teamId = teamMap?['id'] as int?;
               displayItems.add(CupertinoListTile.notched(
-                title: Text(title,
-                    maxLines: null,
-                    softWrap: true,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                title: titleWidget,
                 leading: Icon(CupertinoIcons.gift_fill, color: primaryColor),
                 additionalInfo: Text(num,
                     style: TextStyle(

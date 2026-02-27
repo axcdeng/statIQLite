@@ -1,0 +1,1824 @@
+openapi: 3.1.0
+info:
+  title: RoboStem DB API
+  version: 2.1.0
+  description: |
+    Comprehensive API for RoboStemDB.
+
+    Includes:
+    - Core event/team/program/season endpoints
+    - Division-aware rankings/matches
+    - Leaderboards for V5RC and VIQRC by metric
+    - Partial endpoints for skills-style responses where source data is aggregate
+    - StatiQ leaderboard metrics for V5RC and VIQRC
+  license:
+    name: ISC
+servers:
+  - url: https://api.robostem-api.org
+    description: Production server
+  - url: http://localhost:3000
+    description: Local development
+
+tags:
+  - name: Health
+  - name: Events
+  - name: Teams
+  - name: Skills
+  - name: Rankings
+  - name: Programs
+  - name: Seasons
+  - name: Divisions
+  - name: Leaderboards
+  - name: Partial
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /auth/verify:
+    get:
+      tags: [Health]
+      summary: Verify API key
+      responses:
+        '200':
+          description: API key is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid: { type: boolean }
+                  tier: { type: string }
+                  owner: { type: string }
+
+  /auth/usage:
+    get:
+      tags: [Health]
+      summary: Get API usage statistics
+      responses:
+        '200':
+          description: Usage statistics
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /search:
+    get:
+      tags: [Events, Teams]
+      summary: Regex/fuzzy search across events and teams
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: regex
+          in: query
+          schema: { type: string }
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - name: program
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+      responses:
+        '200':
+          description: Combined search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      query: { type: string, nullable: true }
+                      regex: { type: string, nullable: true }
+                      total: { type: integer }
+                  data:
+                    type: object
+                    properties:
+                      events:
+                        type: array
+                        items: { $ref: '#/components/schemas/Event' }
+                      teams:
+                        type: array
+                        items: { $ref: '#/components/schemas/Team' }
+
+  /events/search:
+    get:
+      tags: [Events]
+      summary: Search events only (fuzzy/regex)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: regex
+          in: query
+          schema: { type: string }
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - name: program
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Paginated event search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEvent'
+        '400':
+          description: Missing search input
+
+  /teams/search:
+    get:
+      tags: [Teams]
+      summary: Search teams only (fuzzy/regex)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: regex
+          in: query
+          schema: { type: string }
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - name: program
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Paginated team search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTeam'
+        '400':
+          description: Missing search input
+
+  /events:
+    get:
+      tags: [Events]
+      summary: List events
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: id[]
+          in: query
+          schema: { type: array, items: { type: integer } }
+          style: form
+          explode: true
+        - name: sku[]
+          in: query
+          schema: { type: array, items: { type: string } }
+          style: form
+          explode: true
+        - name: season[]
+          in: query
+          schema: { type: array, items: { type: integer } }
+          style: form
+          explode: true
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - name: program
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: regex
+          in: query
+          schema: { type: string }
+        - name: start
+          in: query
+          schema: { type: string, format: date-time }
+        - name: end
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Paginated events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEvent'
+
+  /events/{id}:
+    get:
+      tags: [Events]
+      summary: Get event by ID
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+
+  /events/{id}/teams:
+    get:
+      tags: [Events]
+      summary: Teams at an event
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated teams
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTeam'
+
+  /events/{id}/awards:
+    get:
+      tags: [Events]
+      summary: Awards at an event
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated awards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAward'
+
+  /events/{id}/matches:
+    get:
+      tags: [Events]
+      summary: Matches at an event
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - name: division
+          in: query
+          schema: { type: integer }
+        - name: round
+          in: query
+          schema: { type: integer }
+        - name: scored
+          in: query
+          schema: { type: boolean }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated matches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMatch'
+
+  /events/{id}/divisions:
+    get:
+      tags: [Divisions]
+      summary: Divisions for event
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Event divisions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Division'
+
+  /events/{id}/divisions/{div}/matches:
+    get:
+      tags: [Divisions]
+      summary: Division matches
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - $ref: '#/components/parameters/DivisionId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated matches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMatch'
+
+  /events/{id}/divisions/{div}/rankings:
+    get:
+      tags: [Divisions]
+      summary: Division qualification rankings
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - $ref: '#/components/parameters/DivisionId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated division rankings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRanking'
+
+  /events/{id}/divisions/{div}/finalist-rankings:
+    get:
+      tags: [Divisions]
+      summary: Division finalist rankings
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - $ref: '#/components/parameters/DivisionId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated finalist rankings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRanking'
+
+  /events/{id}/{div}/rankings:
+    get:
+      tags: [Divisions]
+      summary: Legacy alias for division qualification rankings
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - $ref: '#/components/parameters/DivisionId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated division rankings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRanking'
+
+  /events/{id}/{div}/finalistRankings:
+    get:
+      tags: [Divisions]
+      summary: Legacy alias for division finalist rankings
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - $ref: '#/components/parameters/DivisionId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated finalist rankings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRanking'
+
+  /events/{id}/{div}/matches/{matchId}:
+    get:
+      tags: [Divisions]
+      summary: Get specific match from a division
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - $ref: '#/components/parameters/DivisionId'
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Match
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+
+  /teams:
+    get:
+      tags: [Teams]
+      summary: List teams
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: id[]
+          in: query
+          schema: { type: array, items: { type: integer } }
+          style: form
+          explode: true
+        - name: number[]
+          in: query
+          schema: { type: array, items: { type: string } }
+          style: form
+          explode: true
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - name: program
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: regex
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Paginated teams
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTeam'
+
+  /teams/{id}:
+    get:
+      tags: [Teams]
+      summary: Get team by ID
+      parameters:
+        - $ref: '#/components/parameters/TeamId'
+      responses:
+        '200':
+          description: Team
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+
+  /teams/{id}/stats:
+    get:
+      tags: [Teams]
+      summary: Team stats summary and ranking history
+      parameters:
+        - $ref: '#/components/parameters/TeamId'
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - name: season
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Team stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamStatsResponse'
+        '404':
+          description: Team not found
+
+  /teams/{id}/events:
+    get:
+      tags: [Teams]
+      summary: Events for team
+      parameters:
+        - $ref: '#/components/parameters/TeamId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEvent'
+
+  /teams/{id}/matches:
+    get:
+      tags: [Teams]
+      summary: Matches for team
+      parameters:
+        - $ref: '#/components/parameters/TeamId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated matches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMatch'
+
+  /teams/{id}/rankings:
+    get:
+      tags: [Teams, Partial]
+      summary: Rankings for team (partial parity)
+      description: Derived from local event/division ranking data.
+      x-implementation-status: partial
+      parameters:
+        - $ref: '#/components/parameters/TeamId'
+        - name: scope
+          in: query
+          schema:
+            type: string
+            enum: [qualification, finalist, all]
+            default: all
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated rankings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRanking'
+
+  /teams/{id}/awards:
+    get:
+      tags: [Teams]
+      summary: Awards for team
+      parameters:
+        - $ref: '#/components/parameters/TeamId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated awards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAward'
+
+  /teams/{id}/skills:
+    get:
+      tags: [Teams, Partial]
+      summary: Team skills (partial)
+      description: Aggregate skills from event/team and world snapshots; not full per-attempt canonical history.
+      x-implementation-status: partial
+      parameters:
+        - $ref: '#/components/parameters/TeamId'
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum: [event, world, all]
+            default: all
+        - name: type[]
+          in: query
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [driver, programming, combined]
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated skill aggregates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSkillAggregate'
+
+  /matches:
+    get:
+      tags: [Divisions]
+      summary: List matches
+      parameters:
+        - name: event
+          in: query
+          schema: { type: integer }
+        - name: team
+          in: query
+          schema: { type: integer }
+        - name: division
+          in: query
+          schema: { type: integer }
+        - name: round
+          in: query
+          schema: { type: integer }
+        - name: scored
+          in: query
+          schema: { type: boolean }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated matches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMatch'
+
+  /matches/{id}:
+    get:
+      tags: [Divisions]
+      summary: Get match by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Match
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+
+  /awards:
+    get:
+      tags: [Events]
+      summary: List awards
+      parameters:
+        - name: event
+          in: query
+          schema: { type: integer }
+        - name: team
+          in: query
+          schema: { type: integer }
+        - name: title
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated awards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAward'
+
+  /events/{id}/skills:
+    get:
+      tags: [Events, Partial]
+      summary: Event skills (partial)
+      description: Aggregate skills response; not full canonical run-level dataset.
+      x-implementation-status: partial
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - name: type[]
+          in: query
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [driver, programming, combined]
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated skill aggregates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSkillAggregate'
+
+  /skills/global:
+    get:
+      tags: [Skills]
+      summary: Global skills leaderboard
+      parameters:
+        - name: program
+          in: query
+          required: true
+          schema: { type: string }
+        - name: country
+          in: query
+          schema: { type: string }
+        - name: region
+          in: query
+          schema: { type: string }
+        - name: team
+          in: query
+          schema: { type: string }
+        - name: season
+          in: query
+          schema: { type: integer }
+        - name: grade
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [elementary, middle, high, all, es, ms, hs]
+        - name: min_score
+          in: query
+          schema: { type: integer }
+        - name: max_score
+          in: query
+          schema: { type: integer }
+        - name: min_rank
+          in: query
+          schema: { type: integer }
+        - name: max_rank
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: skip
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Paginated global skills
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSkillAggregate'
+
+  /rankings/skills/world:
+    get:
+      tags: [Skills]
+      summary: World Skills Rankings
+      parameters:
+        - name: grade
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [elementary, middle, high, all, es, ms, hs]
+        - name: program
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [VIQRC, V5RC]
+        - name: season
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: skip
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: World skills rankings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSkillAggregate'
+
+  /rankings/skills/world/elementary:
+    get:
+      tags: [Skills]
+      summary: VIQRC Elementary School World Skills
+      parameters:
+        - name: program
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [VIQRC]
+      responses:
+        '200':
+          description: Elementary world skills
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSkillAggregate'
+
+  /rankings/skills/world/middle:
+    get:
+      tags: [Skills]
+      summary: VIQRC Middle School World Skills
+      parameters:
+        - name: program
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [VIQRC, V5RC]
+      responses:
+        '200':
+          description: Middle school world skills
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSkillAggregate'
+
+  /rankings/skills/world/team/{id}:
+    get:
+      tags: [Skills]
+      summary: Team's World Skills Ranking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: season
+          in: query
+          schema: { type: integer }
+        - name: program
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [VIQRC, V5RC]
+        - name: grade
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [elementary, middle, high, all, es, ms, hs]
+      responses:
+        '200':
+          description: Team world skills
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /rankings/statiq:
+    get:
+      tags: [Rankings]
+      summary: Global StatiQ Leaderboard
+      parameters:
+        - name: season
+          in: query
+          schema: { type: integer }
+        - name: program
+          in: query
+          schema: { type: string }
+        - name: region
+          in: query
+          schema: { type: string }
+        - name: country
+          in: query
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: skip
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: StatiQ leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /rankings/statiq/epa:
+    get:
+      tags: [Rankings]
+      summary: Global EPA Leaderboard
+      responses:
+        '200':
+          description: EPA leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /rankings/statiq/skills:
+    get:
+      tags: [Rankings]
+      summary: StatiQ Skills Leaderboard
+      parameters:
+        - name: season
+          in: query
+          schema: { type: integer }
+        - name: program
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [driver, programming, combined]
+      responses:
+        '200':
+          description: Skills leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /rankings/statiq/team/{id}:
+    get:
+      tags: [Rankings]
+      summary: Get team's StatiQ ranking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: season
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Team statiq ranking
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /rankings/trueskill/{sku}:
+    get:
+      tags: [Rankings]
+      summary: Get TrueSkill leaderboard for event
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: skip
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Event TrueSkill leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /rankings/trueskill/pure:
+    get:
+      tags: [Rankings]
+      summary: Get pure TrueSkill rankings
+      description: |
+        Returns global TrueSkill leaderboard rows.
+
+        Backward-compatibility note:
+        The query parameters below are documented as **fake compatibility parameters** to
+        match legacy Swagger clients. They are accepted for compatibility and may be ignored
+        by newer clients.
+      parameters:
+        - name: season
+          in: query
+          deprecated: true
+          schema: { type: integer }
+          description: '[Fake/compat-only] Legacy season filter parameter.'
+          x-compatibility-only: true
+        - name: program
+          in: query
+          deprecated: true
+          schema: { type: string }
+          description: '[Fake/compat-only] Legacy program filter parameter.'
+          x-compatibility-only: true
+        - name: region
+          in: query
+          deprecated: true
+          schema: { type: string }
+          description: '[Fake/compat-only] Legacy region filter parameter.'
+          x-compatibility-only: true
+        - name: country
+          in: query
+          deprecated: true
+          schema: { type: string }
+          description: '[Fake/compat-only] Legacy country filter parameter.'
+          x-compatibility-only: true
+        - name: limit
+          in: query
+          deprecated: true
+          schema: { type: integer }
+          description: '[Fake/compat-only] Legacy pagination limit parameter.'
+          x-compatibility-only: true
+        - name: skip
+          in: query
+          deprecated: true
+          schema: { type: integer }
+          description: '[Fake/compat-only] Legacy pagination skip parameter.'
+          x-compatibility-only: true
+      responses:
+        '200':
+          description: Pure TrueSkill rankings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /rankings/viqrc/stats/export:
+    get:
+      tags: [Rankings]
+      summary: Export full VIQRC stats table (unlimited tier only)
+      description: |
+        Downloads the full `viqrc_rankings` dataset joined with team metadata.
+        Access is restricted to API keys with tier `unlimited`.
+      parameters:
+        - name: season
+          in: query
+          schema: { type: integer }
+          description: Optional season ID filter.
+        - name: season_id
+          in: query
+          schema: { type: integer }
+          description: Alias for `season`.
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, json]
+            default: csv
+          description: Download format.
+      responses:
+        '200':
+          description: Export file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  total:
+                    type: integer
+                  season_id:
+                    type: integer
+                    nullable: true
+        '403':
+          description: Requires unlimited-tier API key
+
+  /rankings/statiq/seasons:
+    get:
+      tags: [Rankings]
+      summary: List seasons with StatiQ data
+      responses:
+        '200':
+          description: Seasons list
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /rankings/statiq/programs:
+    get:
+      tags: [Rankings]
+      summary: List programs with StatiQ data
+      parameters:
+        - name: season
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Programs list
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /programs:
+    get:
+      tags: [Programs]
+      summary: List programs
+      responses:
+        '200':
+          description: Paginated programs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProgram'
+
+  /programs/{id}:
+    get:
+      tags: [Programs]
+      summary: Get program by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Program
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Program'
+
+  /seasons:
+    get:
+      tags: [Seasons]
+      summary: List seasons
+      parameters:
+        - name: active
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Paginated seasons
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSeason'
+
+  /seasons/{id}:
+    get:
+      tags: [Seasons]
+      summary: Get season by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Season
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Season'
+
+  /seasons/{id}/events:
+    get:
+      tags: [Seasons]
+      summary: Events in season
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEvent'
+
+  /leaderboards/catalog:
+    get:
+      tags: [Leaderboards]
+      summary: List available leaderboard metrics
+      responses:
+        '200':
+          description: Metrics catalog
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: string
+
+  /leaderboards/v5:
+    get:
+      tags: [Leaderboards]
+      summary: V5 default leaderboard (database rank order)
+      parameters:
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated leaderboard rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /leaderboards/viqrc:
+    get:
+      tags: [Leaderboards]
+      summary: VIQRC default leaderboard (database rank order)
+      parameters:
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated leaderboard rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /leaderboards/{program}/{metric}:
+    get:
+      tags: [Leaderboards]
+      summary: Generic leaderboard by metric
+      parameters:
+        - name: program
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [v5, viqrc]
+        - name: metric
+          in: path
+          required: true
+          schema: { type: string }
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - name: min_matches
+          in: query
+          schema: { type: integer, minimum: 0 }
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated leaderboard rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /leaderboards/v5/trueskill-only:
+    get:
+      tags: [Leaderboards]
+      summary: V5 TrueSkill-only leaderboard
+      parameters:
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - name: basis
+          in: query
+          schema:
+            type: string
+            enum: [mu, conservative, sigma]
+            default: conservative
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated leaderboard rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /leaderboards/viqrc/trueskill-only:
+    get:
+      tags: [Leaderboards]
+      summary: VIQRC TrueSkill-only leaderboard
+      parameters:
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - name: basis
+          in: query
+          schema:
+            type: string
+            enum: [mu, conservative, sigma, skills_conservative]
+            default: conservative
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated leaderboard rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /leaderboards/v5/all:
+    get:
+      tags: [Leaderboards]
+      summary: V5 all-metric leaderboards
+      parameters:
+        - name: season_id
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Leaderboards by metric
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/LeaderboardRow'
+
+  /leaderboards/v5/rank:
+    get:
+      tags: [Leaderboards]
+      summary: V5 leaderboard by database rank column (exact)
+      parameters:
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - name: rank
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: rank_min
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: rank_max
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated leaderboard rows ordered by stored DB rank
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /leaderboards/viqrc/rank:
+    get:
+      tags: [Leaderboards]
+      summary: VIQRC leaderboard by database rank column (exact)
+      parameters:
+        - name: season_id
+          in: query
+          schema: { type: integer }
+        - name: rank
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: rank_min
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: rank_max
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated leaderboard rows ordered by stored DB rank
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaderboardRow'
+
+  /leaderboards/viqrc/all:
+    get:
+      tags: [Leaderboards]
+      summary: VIQRC all-metric leaderboards
+      parameters:
+        - name: season_id
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Leaderboards by metric
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/LeaderboardRow'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPage:
+      name: per_page
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 250, default: 25 }
+    EventId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    TeamId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    DivisionId:
+      name: div
+      in: path
+      required: true
+      schema: { type: integer }
+
+  schemas:
+    PageMeta:
+      type: object
+      properties:
+        tier:
+          type: string
+          enum: [regular, unlimited]
+        page: { type: integer }
+        per_page: { type: integer }
+        count: { type: integer }
+        limit: { type: integer }
+        skip: { type: integer }
+        total: { type: integer }
+
+    Event:
+      type: object
+      properties:
+        id: { type: integer }
+        sku: { type: string }
+        name: { type: string }
+        program: { type: string }
+        season_id: { type: integer }
+        event_type: { type: string, nullable: true }
+        timezone: { type: string, nullable: true }
+        venue: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        region: { type: string, nullable: true }
+        country: { type: string, nullable: true }
+        postal_code: { type: string, nullable: true }
+        start: { type: string, format: date-time }
+        end: { type: string, format: date-time }
+        is_league_finals: { type: boolean, nullable: true }
+        has_skills: { type: boolean, nullable: true }
+        match_count_expected: { type: integer, nullable: true }
+        teams_count: { type: integer, nullable: true }
+        matches_count: { type: integer, nullable: true }
+        scored_matches_count: { type: integer, nullable: true }
+        awards_count: { type: integer, nullable: true }
+        skills_teams_count: { type: integer, nullable: true }
+        divisions_count: { type: integer, nullable: true }
+
+    Team:
+      type: object
+      properties:
+        id: { type: integer }
+        number: { type: string }
+        team_name: { type: string }
+        organization: { type: string }
+        program: { type: string }
+        city: { type: string, nullable: true }
+        region: { type: string }
+        country: { type: string }
+        statiq:
+          type: object
+          properties:
+            statiq_score: { type: number, nullable: true }
+            trueskill_mu: { type: number, nullable: true }
+            trueskill_sigma: { type: number, nullable: true }
+            trueskill_conservative: { type: number, nullable: true }
+            auto_skill: { type: number, nullable: true }
+            epa_total: { type: number, nullable: true }
+            epa_auto: { type: number, nullable: true }
+            epa_driver: { type: number, nullable: true }
+            offense: { type: number, nullable: true }
+            defense: { type: number, nullable: true }
+            ccwm: { type: number, nullable: true }
+            signature_wins: { type: number, nullable: true }
+            total_matches: { type: number, nullable: true }
+            ts_mu: { type: number, nullable: true }
+            ts_sigma: { type: number, nullable: true }
+            ts_mu_dr: { type: number, nullable: true }
+            ts_sigma_dr: { type: number, nullable: true }
+            ts_mu_pr: { type: number, nullable: true }
+            ts_sigma_pr: { type: number, nullable: true }
+            ts_conservative: { type: number, nullable: true }
+            ts_conservative_sk: { type: number, nullable: true }
+            epa: { type: number, nullable: true }
+            opr: { type: number, nullable: true }
+            avg_score: { type: number, nullable: true }
+            max_score: { type: number, nullable: true }
+            sig_wins: { type: number, nullable: true }
+            match_count: { type: number, nullable: true }
+            alliance_luck: { type: number, nullable: true }
+            variance_penalty: { type: number, nullable: true }
+            reliability_factor: { type: number, nullable: true }
+
+    Award:
+      type: object
+      properties:
+        id: { type: integer }
+        event_id: { type: integer }
+        team_id: { type: integer }
+        award_name: { type: string }
+
+    Match:
+      type: object
+      properties:
+        id: { type: integer }
+        event_id: { type: integer }
+        division_id: { type: integer }
+        round: { type: string }
+        instance: { type: integer }
+        matchnum: { type: integer }
+        red_score: { type: integer }
+        blue_score: { type: integer }
+
+    Ranking:
+      type: object
+      properties:
+        event_id: { type: integer }
+        division_id: { type: integer }
+        team_id: { type: integer }
+        ranking_scope: { type: string }
+        rank: { type: integer }
+        wins: { type: integer }
+        losses: { type: integer }
+        ties: { type: integer }
+        wp: { type: integer }
+        ap: { type: integer }
+        sp: { type: integer }
+        opr: { type: number }
+        dpr: { type: number }
+        ccwm: { type: number }
+
+    Division:
+      type: object
+      properties:
+        event_id: { type: integer }
+        division_id: { type: integer }
+        division_name: { type: string }
+        is_primary: { type: boolean }
+
+    Program:
+      type: object
+      properties:
+        id: { type: integer }
+        code: { type: string }
+        name: { type: string }
+
+    Season:
+      type: object
+      properties:
+        id: { type: integer }
+        code: { type: string }
+        name: { type: string }
+        year_start: { type: integer }
+        year_end: { type: integer }
+        program: { type: string }
+
+    LeaderboardRow:
+      type: object
+      properties:
+        rank: { type: integer }
+        team_id: { type: integer }
+        team_number: { type: string }
+        team_name: { type: string }
+        value: { type: number }
+        season_id: { type: integer }
+        metric: { type: string }
+        statiq_score: { type: number, nullable: true }
+        trueskill_mu: { type: number, nullable: true }
+        trueskill_sigma: { type: number, nullable: true }
+        trueskill_conservative: { type: number, nullable: true }
+        auto_skill: { type: number, nullable: true }
+        epa_total: { type: number, nullable: true }
+        epa_auto: { type: number, nullable: true }
+        epa_driver: { type: number, nullable: true }
+        offense: { type: number, nullable: true }
+        defense: { type: number, nullable: true }
+        ccwm: { type: number, nullable: true }
+        signature_wins: { type: number, nullable: true }
+        total_matches: { type: number, nullable: true }
+        ts_mu: { type: number, nullable: true }
+        ts_sigma: { type: number, nullable: true }
+        ts_mu_dr: { type: number, nullable: true }
+        ts_sigma_dr: { type: number, nullable: true }
+        ts_mu_pr: { type: number, nullable: true }
+        ts_sigma_pr: { type: number, nullable: true }
+        ts_conservative: { type: number, nullable: true }
+        ts_conservative_sk: { type: number, nullable: true }
+        epa: { type: number, nullable: true }
+        opr: { type: number, nullable: true }
+        avg_score: { type: number, nullable: true }
+        max_score: { type: number, nullable: true }
+        sig_wins: { type: number, nullable: true }
+        match_count: { type: number, nullable: true }
+        alliance_luck: { type: number, nullable: true }
+        variance_penalty: { type: number, nullable: true }
+        reliability_factor: { type: number, nullable: true }
+
+    SkillAggregate:
+      type: object
+      properties:
+        team_id: { type: integer }
+        team_number: { type: string }
+        event_id: { type: integer, nullable: true }
+        season_id: { type: integer, nullable: true }
+        driver_score: { type: number, nullable: true }
+        programming_score: { type: number, nullable: true }
+        combined_score: { type: number, nullable: true }
+        source:
+          type: string
+          enum: [event, world]
+
+    TeamStatsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            team:
+              $ref: '#/components/schemas/Team'
+            rankings:
+              type: object
+              properties:
+                v5rc:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                viqrc:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+            skills:
+              type: object
+              properties:
+                best_driver: { type: number, nullable: true }
+                best_programming: { type: number, nullable: true }
+                best_combined: { type: number, nullable: true }
+                records: { type: integer }
+            filters:
+              type: object
+              properties:
+                season_id: { type: integer, nullable: true }
+
+    PaginatedEvent:
+      type: object
+      properties:
+        count: { type: integer }
+        limit: { type: integer }
+        skip: { type: integer }
+        total: { type: integer }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Event' }
+
+    PaginatedTeam:
+      type: object
+      properties:
+        count: { type: integer }
+        limit: { type: integer }
+        skip: { type: integer }
+        total: { type: integer }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Team' }
+
+    PaginatedAward:
+      type: object
+      properties:
+        count: { type: integer }
+        limit: { type: integer }
+        skip: { type: integer }
+        total: { type: integer }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Award' }
+
+    PaginatedMatch:
+      type: object
+      properties:
+        count: { type: integer }
+        limit: { type: integer }
+        skip: { type: integer }
+        total: { type: integer }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Match' }
+
+    PaginatedRanking:
+      type: object
+      properties:
+        count: { type: integer }
+        limit: { type: integer }
+        skip: { type: integer }
+        total: { type: integer }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Ranking' }
+
+    PaginatedLeaderboardRow:
+      type: object
+      properties:
+        count: { type: integer }
+        limit: { type: integer }
+        skip: { type: integer }
+        total: { type: integer }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/LeaderboardRow' }
+
+    PaginatedProgram:
+      type: object
+      properties:
+        count: { type: integer }
+        limit: { type: integer }
+        skip: { type: integer }
+        total: { type: integer }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Program' }
+
+    PaginatedSeason:
+      type: object
+      properties:
+        count: { type: integer }
+        limit: { type: integer }
+        skip: { type: integer }
+        total: { type: integer }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Season' }
+
+    PaginatedSkillAggregate:
+      type: object
+      properties:
+        count: { type: integer }
+        limit: { type: integer }
+        skip: { type: integer }
+        total: { type: integer }
+        meta:
+          allOf:
+            - $ref: '#/components/schemas/PageMeta'
+            - type: object
+              properties:
+                implementation_status:
+                  type: string
+                  enum: [partial]
+                coverage_notes:
+                  type: string
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/SkillAggregate' }

@@ -263,21 +263,26 @@ class ApiClient {
     ));
 
     try {
-      // Map grade level to new API values (elementary/es or middle/ms)
+      // Map grade level to API values (elementary/es or middle/ms)
       String grade = 'middle';
       if (gradeLevel.toLowerCase().contains('elementary')) {
         grade = 'elementary';
+      } else if (gradeLevel.toLowerCase().contains('high')) {
+        grade = 'high';
       }
 
       debugPrint(
-          'DEBUG calling RoboStem: /api/rankings/skills/world with params: ${{
+          'DEBUG calling RoboStem: /rankings/skills/world with params: ${{
         'grade': grade,
+        'program': 'VIQRC',
         'limit': 100,
       }}');
 
+      // New API endpoint: /rankings/skills/world — requires both grade and program
       final response =
-          await dio.get('/api/rankings/skills/world', queryParameters: {
+          await dio.get('/rankings/skills/world', queryParameters: {
         'grade': grade,
+        'program': 'VIQRC', // required by API v2.1
         'limit': 100,
       });
 
@@ -288,7 +293,16 @@ class ApiClient {
         rawList = (response.data as List).cast<Map<String, dynamic>>();
       }
 
-      return rawList;
+      // Normalise numeric fields that arrive as strings from this endpoint
+      return rawList.map((item) {
+        return {
+          ...item,
+          'score': _parseNum(item['score']),
+          'driver_score': _parseNum(item['driver_score']),
+          'programming_score': _parseNum(item['programming_score']),
+          'autonomous_score': _parseNum(item['autonomous_score']),
+        };
+      }).toList();
     } catch (e) {
       if (e is DioException) {
         debugPrint(
@@ -296,6 +310,13 @@ class ApiClient {
       }
       return [];
     }
+  }
+
+  /// Parses a value that may arrive as a String or num from the API.
+  num? _parseNum(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v;
+    return num.tryParse(v.toString());
   }
 
   Future<List<Team>> getGlobalTrueSkillRankings(
@@ -313,13 +334,22 @@ class ApiClient {
     ));
 
     try {
-      // Use the pure TrueSkill endpoint
-      final response =
-          await dio.get('/api/rankings/trueskill/pure', queryParameters: {
-        'season': 196, // Fixed season for now as requested
-        'limit': limit,
-        if (country != null && country.isNotEmpty) 'country': country,
-      });
+      // New endpoint: /leaderboards/viqrc/trueskill-only
+      // basis=conservative => sorts by ts_conservative (default)
+      // Response is a flat LeaderboardRow — no nested team/trueskill objects.
+      final queryParams = <String, dynamic>{
+        'basis': 'conservative',
+        'per_page': limit,
+        'season_id': AppConstants.currentSeasonId,
+      };
+
+      debugPrint(
+          'DEBUG calling RoboStem: /leaderboards/viqrc/trueskill-only with params: $queryParams');
+
+      final response = await dio.get(
+        '/leaderboards/viqrc/trueskill-only',
+        queryParameters: queryParams,
+      );
 
       List<Map<String, dynamic>> rawList = [];
       if (response.data is Map && response.data['data'] is List) {
@@ -328,21 +358,37 @@ class ApiClient {
         rawList = (response.data as List).cast<Map<String, dynamic>>();
       }
 
+      // Each item is a flat LeaderboardRow:
+      //   rank, team_id, team_number, team_name, value, season_id, metric,
+      //   ts_conservative, ts_mu, ts_sigma, ts_conservative_sk, … (nullable)
       return rawList.map((json) {
-        if (json.containsKey('team') && json['team'] is Map) {
-          final teamData = Map<String, dynamic>.from(json['team'] as Map);
-          // Ensure we have the top-level keys in teamData if they are not in the team sub-object
-          // For pure endpoint, trueskill object is at top level
-          teamData['trueskill_data'] = json['trueskill'];
-          teamData['rank'] = json['rank'];
-          teamData['programRank'] =
-              json['programRank']; // Pure endpoint has this
-          teamData['gradeLevel'] = json['gradeLevel'] ?? teamData['gradeLevel'];
-          return Team.fromJson(teamData);
-        }
-        return Team.fromJson(json);
+        // Build a Team-compatible map from the flat LeaderboardRow fields.
+        final teamMap = <String, dynamic>{
+          'id': json['team_id'],
+          'number': json['team_number'],
+          'team_name': json['team_name'],
+          // Carry rank as worldRank so existing leaderboard UI works.
+          'worldRank': json['rank'] is String
+              ? int.tryParse(json['rank'] as String)
+              : json['rank'] as int?,
+          // Expose key TrueSkill fields inside a statiq sub-map so Team.fromJson
+          // can pick them up the same way it always has.
+          'statiq': {
+            'trueskill_conservative': json['value'],
+            'ts_conservative': json['ts_conservative'] ?? json['value'],
+            'ts_mu': json['ts_mu'],
+            'ts_sigma': json['ts_sigma'],
+            'ts_conservative_sk': json['ts_conservative_sk'],
+            'ts_mu_dr': json['ts_mu_dr'],
+            'ts_sigma_dr': json['ts_sigma_dr'],
+            'ts_mu_pr': json['ts_mu_pr'],
+            'ts_sigma_pr': json['ts_sigma_pr'],
+          },
+        };
+        return Team.fromJson(teamMap);
       }).toList();
     } catch (e) {
+      debugPrint('Error fetching TrueSkill rankings: $e');
       return [];
     }
   }
@@ -467,17 +513,25 @@ class ApiClient {
     ));
 
     try {
-      final queryParams = <String, dynamic>{
-        'team': teamNumber,
-        'limit': 1,
-      };
-      // If we know the grade level, filter by it for a more precise result
+      // Map human grade level string to API enum value
+      String grade = 'middle';
       if (gradeLevel != null) {
-        queryParams['grade_level'] = gradeLevel;
+        if (gradeLevel.toLowerCase().contains('elementary')) {
+          grade = 'elementary';
+        } else if (gradeLevel.toLowerCase().contains('high')) {
+          grade = 'high';
+        }
       }
 
+      final queryParams = <String, dynamic>{
+        'team': teamNumber,
+        'program': 'VIQRC', // required by API v2.1
+        'grade': grade,
+        'limit': 1,
+      };
+
       final response =
-          await dio.get('/api/skills/global', queryParameters: queryParams);
+          await dio.get('/skills/global', queryParameters: queryParams);
 
       List<dynamic> data;
       if (response.data is Map && response.data.containsKey('data')) {
