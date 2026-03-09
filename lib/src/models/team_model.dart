@@ -107,6 +107,10 @@ class Team {
       }
     }
 
+    // 5. Final fallback – check for 'trueskill' or 'teamwork' at the top level
+    // (Crucial for deserializing from Hive where it was saved via toJson())
+    teamwork ??= json['trueskill'] as num? ?? json['teamwork'] as num?;
+
     // Extract skills if they are nested in statiq or at the top level
     Map<String, dynamic>? skills;
     if (statiq != null && statiq['skills'] is Map) {

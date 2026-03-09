@@ -212,22 +212,40 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen>
 
 // ---------- TEAMS ----------
 
-class _TeamsList extends ConsumerWidget {
+class _TeamsList extends ConsumerStatefulWidget {
   final Event event;
   final Division? division;
   const _TeamsList({required this.event, this.division});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_TeamsList> createState() => _TeamsListState();
+}
+
+class _TeamsListState extends ConsumerState<_TeamsList> {
+  Future<void> _handleRefresh() async {
+    await ref.read(teamsRepositoryProvider).fetchTeams(widget.event.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final teamsRepo = ref.watch(teamsRepositoryProvider);
-    // final primaryColor = Theme.of(context).colorScheme.primary;
 
     return ValueListenableBuilder<Box<Team>>(
       valueListenable: teamsRepo.watchTeams(),
       builder: (context, box, _) {
-        final teams = teamsRepo.getTeamsForEvent(event.id);
+        final teams = teamsRepo.getTeamsForEvent(widget.event.id);
         if (teams.isEmpty) {
-          return const Center(child: CupertinoActivityIndicator());
+          return RefreshIndicator.adaptive(
+            onRefresh: _handleRefresh,
+            child: ListView(
+              children: const [
+                SizedBox(
+                  height: 200,
+                  child: Center(child: CupertinoActivityIndicator()),
+                ),
+              ],
+            ),
+          );
         }
 
         // Sort teams by numeric prefix, then letter suffix
@@ -242,39 +260,42 @@ class _TeamsList extends ConsumerWidget {
           return aSuffix.compareTo(bSuffix);
         });
 
-        return ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            CupertinoListSection.insetGrouped(
-              header: const Text('TEAMS'),
-              margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              children: teams.map((team) {
-                return CupertinoListTile.notched(
-                  leading: Builder(builder: (context) {
-                    String? country;
-                    if (team.location != null && team.location!.isNotEmpty) {
-                      final parts = team.location!.split(', ');
-                      if (parts.isNotEmpty) {
-                        country = parts.last;
+        return RefreshIndicator.adaptive(
+          onRefresh: _handleRefresh,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              CupertinoListSection.insetGrouped(
+                header: const Text('TEAMS'),
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                children: teams.map((team) {
+                  return CupertinoListTile.notched(
+                    leading: Builder(builder: (context) {
+                      String? country;
+                      if (team.location != null && team.location!.isNotEmpty) {
+                        final parts = team.location!.split(', ');
+                        if (parts.isNotEmpty) {
+                          country = parts.last;
+                        }
                       }
-                    }
-                    return Text(CountryUtils.getFlagEmoji(country),
-                        style: const TextStyle(fontSize: 24));
-                  }),
-                  title: Text(team.number,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(team.name,
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  trailing: const CupertinoListTileChevron(),
-                  onTap: () {
-                    Navigator.of(context).push(CupertinoPageRoute(
-                        builder: (_) =>
-                            TeamAtEventScreen(team: team, event: event)));
-                  },
-                );
-              }).toList(),
-            ),
-          ],
+                      return Text(CountryUtils.getFlagEmoji(country),
+                          style: const TextStyle(fontSize: 24));
+                    }),
+                    title: Text(team.number,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(team.name,
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    trailing: const CupertinoListTileChevron(),
+                    onTap: () {
+                      Navigator.of(context).push(CupertinoPageRoute(
+                          builder: (_) => TeamAtEventScreen(
+                              team: team, event: widget.event)));
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -296,6 +317,10 @@ class _MatchesListState extends ConsumerState<_MatchesList> {
   bool _qualsExpanded = true;
   bool _finalsExpanded = true;
 
+  Future<void> _handleRefresh() async {
+    await ref.read(matchesRepositoryProvider).fetchMatches(widget.event.id);
+  }
+
   @override
   Widget build(BuildContext context) {
     final matchesRepo = ref.watch(matchesRepositoryProvider);
@@ -311,9 +336,20 @@ class _MatchesListState extends ConsumerState<_MatchesList> {
         }
 
         if (matches.isEmpty) {
-          return const Center(
-              child: Text('No matches loaded.',
-                  style: TextStyle(color: CupertinoColors.secondaryLabel)));
+          return RefreshIndicator.adaptive(
+            onRefresh: _handleRefresh,
+            child: ListView(
+              children: const [
+                SizedBox(
+                  height: 200,
+                  child: Center(
+                      child: Text('No matches loaded.',
+                          style: TextStyle(
+                              color: CupertinoColors.secondaryLabel))),
+                ),
+              ],
+            ),
+          );
         }
 
         matches.sort((a, b) {
@@ -325,34 +361,37 @@ class _MatchesListState extends ConsumerState<_MatchesList> {
         final quals = matches.where((m) => m.isQualifier).toList();
         final finals = matches.where((m) => m.isFinals).toList();
 
-        return ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            if (quals.isNotEmpty) ...[
-              _buildCollapsibleHeader(
-                'QUALIFICATION MATCHES (${quals.length})',
-                _qualsExpanded,
-                () => setState(() => _qualsExpanded = !_qualsExpanded),
-              ),
-              if (_qualsExpanded)
-                CupertinoListSection.insetGrouped(
-                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  children: quals.map((m) => MatchTile(match: m)).toList(),
+        return RefreshIndicator.adaptive(
+          onRefresh: _handleRefresh,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              if (quals.isNotEmpty) ...[
+                _buildCollapsibleHeader(
+                  'QUALIFICATION MATCHES (${quals.length})',
+                  _qualsExpanded,
+                  () => setState(() => _qualsExpanded = !_qualsExpanded),
                 ),
-            ],
-            if (finals.isNotEmpty) ...[
-              _buildCollapsibleHeader(
-                'FINALS (${finals.length})',
-                _finalsExpanded,
-                () => setState(() => _finalsExpanded = !_finalsExpanded),
-              ),
-              if (_finalsExpanded)
-                CupertinoListSection.insetGrouped(
-                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  children: finals.map((m) => MatchTile(match: m)).toList(),
+                if (_qualsExpanded)
+                  CupertinoListSection.insetGrouped(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    children: quals.map((m) => MatchTile(match: m)).toList(),
+                  ),
+              ],
+              if (finals.isNotEmpty) ...[
+                _buildCollapsibleHeader(
+                  'FINALS (${finals.length})',
+                  _finalsExpanded,
+                  () => setState(() => _finalsExpanded = !_finalsExpanded),
                 ),
+                if (_finalsExpanded)
+                  CupertinoListSection.insetGrouped(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    children: finals.map((m) => MatchTile(match: m)).toList(),
+                  ),
+              ],
             ],
-          ],
+          ),
         );
       },
     );
@@ -516,6 +555,12 @@ class _RankingsList extends ConsumerStatefulWidget {
 
 class _RankingsListState extends ConsumerState<_RankingsList> {
   int _selectedSubTab = 0; // 0 for Rankings, 1 for Finals
+  int _refreshKey = 0;
+
+  Future<void> _handleRefresh() async {
+    ref.read(eventsRepositoryProvider).clearRankingsCache(widget.event.id);
+    setState(() => _refreshKey++);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -530,11 +575,11 @@ class _RankingsListState extends ConsumerState<_RankingsList> {
             width: double.infinity,
             child: CupertinoSlidingSegmentedControl<int>(
               groupValue: _selectedSubTab,
-              children: {
-                0: const Padding(
+              children: const {
+                0: Padding(
                     padding: EdgeInsets.symmetric(vertical: 4),
                     child: Text('Rankings', style: TextStyle(fontSize: 13))),
-                1: const Padding(
+                1: Padding(
                     padding: EdgeInsets.symmetric(vertical: 4),
                     child: Text('Finals', style: TextStyle(fontSize: 13))),
               },
@@ -545,217 +590,225 @@ class _RankingsListState extends ConsumerState<_RankingsList> {
           ),
         ),
         Expanded(
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: isFinals
-                ? ref
-                    .read(eventsRepositoryProvider)
-                    .getFinalistRankings(widget.event.id)
-                : ref
-                    .read(eventsRepositoryProvider)
-                    .getEventRankings(widget.event.id),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CupertinoActivityIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(
-                    child: Text('Error: ${snapshot.error}',
-                        style: const TextStyle(
-                            color: CupertinoColors.destructiveRed)));
-              }
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return Center(
-                    child: Text(
-                        isFinals
-                            ? 'No finalist rankings available.'
-                            : 'No rankings available.',
-                        style: const TextStyle(
-                            color: CupertinoColors.secondaryLabel)));
-              }
+          child: RefreshIndicator.adaptive(
+            onRefresh: _handleRefresh,
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              key: ValueKey('rankings-$_selectedSubTab-$_refreshKey'),
+              future: isFinals
+                  ? ref
+                      .read(eventsRepositoryProvider)
+                      .getFinalistRankings(widget.event.id)
+                  : ref
+                      .read(eventsRepositoryProvider)
+                      .getEventRankings(widget.event.id),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CupertinoActivityIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                      child: Text('Error: ${snapshot.error}',
+                          style: const TextStyle(
+                              color: CupertinoColors.destructiveRed)));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
+                      child: Text(
+                          isFinals
+                              ? 'No finalist rankings available.'
+                              : 'No rankings available.',
+                          style: const TextStyle(
+                              color: CupertinoColors.secondaryLabel)));
+                }
 
-              var rankings = List<Map<String, dynamic>>.from(snapshot.data!);
+                var rankings = List<Map<String, dynamic>>.from(snapshot.data!);
 
-              if (widget.division != null) {
-                rankings = rankings
-                    .where((r) => r['divisionId'] == widget.division!.id)
-                    .toList();
-              }
+                if (widget.division != null) {
+                  rankings = rankings
+                      .where((r) => r['divisionId'] == widget.division!.id)
+                      .toList();
+                }
 
-              rankings.sort((a, b) {
-                final r1 = a['rank'] as int? ?? 999;
-                final r2 = b['rank'] as int? ?? 999;
-                return r1.compareTo(r2);
-              });
+                rankings.sort((a, b) {
+                  final r1 = a['rank'] as int? ?? 999;
+                  final r2 = b['rank'] as int? ?? 999;
+                  return r1.compareTo(r2);
+                });
 
-              // Pre-fetch matches if we are in finals to find scores
-              return FutureBuilder<List<MatchModel>>(
-                future: isFinals
-                    ? () async {
-                        final matchesRepo = ref.read(matchesRepositoryProvider);
-                        await matchesRepo.fetchMatches(widget.event.id);
-                        return matchesRepo
-                            .getMatchesForEvent(widget.event.id)
-                            .where((m) => m.isFinals)
-                            .toList();
-                      }()
-                    : Future.value([]),
-                builder: (context, matchSnapshot) {
-                  final finalsMatches = matchSnapshot.data ?? [];
+                // Pre-fetch matches if we are in finals to find scores
+                return FutureBuilder<List<MatchModel>>(
+                  future: isFinals
+                      ? () async {
+                          final matchesRepo =
+                              ref.read(matchesRepositoryProvider);
+                          await matchesRepo.fetchMatches(widget.event.id);
+                          return matchesRepo
+                              .getMatchesForEvent(widget.event.id)
+                              .where((m) => m.isFinals)
+                              .toList();
+                        }()
+                      : Future.value([]),
+                  builder: (context, matchSnapshot) {
+                    final finalsMatches = matchSnapshot.data ?? [];
 
-                  final List<Widget> listItems = [];
+                    final List<Widget> listItems = [];
 
-                  if (isFinals) {
-                    // Group by rank
-                    final grouped = <int, List<Map<String, dynamic>>>{};
-                    for (final r in rankings) {
-                      final rank = r['rank'] as int? ?? 0;
-                      grouped.putIfAbsent(rank, () => []).add(r);
-                    }
+                    if (isFinals) {
+                      // Group by rank
+                      final grouped = <int, List<Map<String, dynamic>>>{};
+                      for (final r in rankings) {
+                        final rank = r['rank'] as int? ?? 0;
+                        grouped.putIfAbsent(rank, () => []).add(r);
+                      }
 
-                    final sortedRanks = grouped.keys.toList()..sort();
+                      final sortedRanks = grouped.keys.toList()..sort();
 
-                    for (final rank in sortedRanks) {
-                      final allianceTeams = grouped[rank]!;
-                      final teamNums = allianceTeams
-                          .map((t) => (t['team']?['name'] as String?) ?? '')
-                          .where((n) => n.isNotEmpty)
-                          .toSet();
+                      for (final rank in sortedRanks) {
+                        final allianceTeams = grouped[rank]!;
+                        final teamNums = allianceTeams
+                            .map((t) => (t['team']?['name'] as String?) ?? '')
+                            .where((n) => n.isNotEmpty)
+                            .toSet();
 
-                      // Fallback to match score if API score is nul/zero
-                      var score = allianceTeams.first['score'] ??
-                          allianceTeams.first['points'] ??
-                          allianceTeams.first['average_points'];
+                        // Fallback to match score if API score is nul/zero
+                        var score = allianceTeams.first['score'] ??
+                            allianceTeams.first['points'] ??
+                            allianceTeams.first['average_points'];
 
-                      MatchModel? foundMatch;
-                      if (finalsMatches.isNotEmpty) {
-                        for (final m in finalsMatches) {
-                          final matchTeams = {
-                            ...m.redAllianceTeamNums,
-                            ...m.blueAllianceTeamNums
-                          };
-                          // Check if this match contains all teams in this alliance
-                          if (teamNums.every((n) => matchTeams.contains(n))) {
-                            foundMatch = m;
-                            if (score == null || score == 0) {
-                              score = m.redScore ?? m.blueScore;
+                        MatchModel? foundMatch;
+                        if (finalsMatches.isNotEmpty) {
+                          for (final m in finalsMatches) {
+                            final matchTeams = {
+                              ...m.redAllianceTeamNums,
+                              ...m.blueAllianceTeamNums
+                            };
+                            // Check if this match contains all teams in this alliance
+                            if (teamNums.every((n) => matchTeams.contains(n))) {
+                              foundMatch = m;
+                              if (score == null || score == 0) {
+                                score = m.redScore ?? m.blueScore;
+                              }
+                              break;
                             }
-                            break;
                           }
                         }
-                      }
 
-                      // Relist teams to ensure correct order/color if match found
-                      final List<Map<String, dynamic>> orderedTeams =
-                          List.from(allianceTeams);
-                      if (foundMatch != null) {
-                        orderedTeams.sort((a, b) {
-                          final numA = a['team']?['name'] ?? '';
-                          // If numA is in red alliance, it should come first (return -1)
-                          if (foundMatch!.redAllianceTeamNums.contains(numA)) {
-                            return -1;
-                          }
-                          return 1;
-                        });
-                      }
+                        // Relist teams to ensure correct order/color if match found
+                        final List<Map<String, dynamic>> orderedTeams =
+                            List.from(allianceTeams);
+                        if (foundMatch != null) {
+                          orderedTeams.sort((a, b) {
+                            final numA = a['team']?['name'] ?? '';
+                            // If numA is in red alliance, it should come first (return -1)
+                            if (foundMatch!.redAllianceTeamNums
+                                .contains(numA)) {
+                              return -1;
+                            }
+                            return 1;
+                          });
+                        }
 
-                      listItems.add(CupertinoListTile.notched(
-                        leading: Text('$rank',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 17,
-                                color: CupertinoColors.systemGrey2)),
-                        title: Row(
-                          children: [
-                            for (int i = 0; i < orderedTeams.length; i++) ...[
-                              Text(
-                                (orderedTeams[i]['team']?['name'] ?? '?'),
-                                style: TextStyle(
+                        listItems.add(CupertinoListTile.notched(
+                          leading: Text('$rank',
+                              style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 17,
-                                  color: i == 0
-                                      ? CupertinoColors.systemRed
-                                      : CupertinoColors.systemBlue,
+                                  color: CupertinoColors.systemGrey2)),
+                          title: Row(
+                            children: [
+                              for (int i = 0; i < orderedTeams.length; i++) ...[
+                                Text(
+                                  (orderedTeams[i]['team']?['name'] ?? '?'),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 17,
+                                    color: i == 0
+                                        ? CupertinoColors.systemRed
+                                        : CupertinoColors.systemBlue,
+                                  ),
                                 ),
-                              ),
-                              if (i < orderedTeams.length - 1)
-                                const Text(' ', style: TextStyle(fontSize: 17)),
+                                if (i < orderedTeams.length - 1)
+                                  const Text(' ',
+                                      style: TextStyle(fontSize: 17)),
+                              ],
                             ],
-                          ],
-                        ),
-                        additionalInfo: Text('${score ?? '-'} pts',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor)),
-                        trailing: const CupertinoListTileChevron(),
-                        onTap: () {
-                          // Navigate to the first team for now
-                          final teamMap = orderedTeams.first['team']
-                              as Map<String, dynamic>;
-                          final teamNum = teamMap['name'] ?? '?';
-                          final teamId = teamMap['id'] as int;
-                          final team = Team(
-                            id: teamId,
-                            number: teamNum,
-                            name: teamMap['team_name'] ?? '',
-                            eventId: widget.event.id,
-                          );
-                          Navigator.of(context).push(CupertinoPageRoute(
-                              builder: (_) => TeamAtEventScreen(
-                                  team: team, event: widget.event)));
-                        },
-                      ));
+                          ),
+                          additionalInfo: Text('${score ?? '-'} pts',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor)),
+                          trailing: const CupertinoListTileChevron(),
+                          onTap: () {
+                            // Navigate to the first team for now
+                            final teamMap = orderedTeams.first['team']
+                                as Map<String, dynamic>;
+                            final teamNum = teamMap['name'] ?? '?';
+                            final teamId = teamMap['id'] as int;
+                            final team = Team(
+                              id: teamId,
+                              number: teamNum,
+                              name: teamMap['team_name'] ?? '',
+                              eventId: widget.event.id,
+                            );
+                            Navigator.of(context).push(CupertinoPageRoute(
+                                builder: (_) => TeamAtEventScreen(
+                                    team: team, event: widget.event)));
+                          },
+                        ));
+                      }
+                    } else {
+                      listItems.addAll(rankings.map((rankItem) {
+                        final teamMap =
+                            rankItem['team'] as Map<String, dynamic>;
+                        final teamNum = teamMap['name'] ?? '?';
+                        final teamId = teamMap['id'] as int;
+                        final rank = rankItem['rank'];
+                        final avgScore = rankItem['average_points'];
+
+                        return CupertinoListTile.notched(
+                          leading: Text('$rank',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 17,
+                                  color: CupertinoColors.systemGrey2)),
+                          title: Text(teamNum,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 17)),
+                          additionalInfo: Text('${avgScore ?? '-'} pts',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor)),
+                          trailing: const CupertinoListTileChevron(),
+                          onTap: () {
+                            final team = Team(
+                              id: teamId,
+                              number: teamNum,
+                              name: teamMap['team_name'] ?? '',
+                              eventId: widget.event.id,
+                            );
+                            Navigator.of(context).push(CupertinoPageRoute(
+                                builder: (_) => TeamAtEventScreen(
+                                    team: team, event: widget.event)));
+                          },
+                        );
+                      }));
                     }
-                  } else {
-                    listItems.addAll(rankings.map((rankItem) {
-                      final teamMap = rankItem['team'] as Map<String, dynamic>;
-                      final teamNum = teamMap['name'] ?? '?';
-                      final teamId = teamMap['id'] as int;
-                      final rank = rankItem['rank'];
-                      final avgScore = rankItem['average_points'];
 
-                      return CupertinoListTile.notched(
-                        leading: Text('$rank',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 17,
-                                color: CupertinoColors.systemGrey2)),
-                        title: Text(teamNum,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 17)),
-                        additionalInfo: Text('${avgScore ?? '-'} pts',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor)),
-                        trailing: const CupertinoListTileChevron(),
-                        onTap: () {
-                          final team = Team(
-                            id: teamId,
-                            number: teamNum,
-                            name: teamMap['team_name'] ?? '',
-                            eventId: widget.event.id,
-                          );
-                          Navigator.of(context).push(CupertinoPageRoute(
-                              builder: (_) => TeamAtEventScreen(
-                                  team: team, event: widget.event)));
-                        },
-                      );
-                    }));
-                  }
-
-                  return ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      CupertinoListSection.insetGrouped(
-                        header:
-                            Text(isFinals ? 'FINALIST RANKINGS' : 'RANKINGS'),
-                        margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                        children: listItems,
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
+                    return ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        CupertinoListSection.insetGrouped(
+                          header:
+                              Text(isFinals ? 'FINALIST RANKINGS' : 'RANKINGS'),
+                          margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                          children: listItems,
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -765,185 +818,230 @@ class _RankingsListState extends ConsumerState<_RankingsList> {
 
 // ---------- SKILLS ----------
 
-class _SkillsList extends ConsumerWidget {
+class _SkillsList extends ConsumerStatefulWidget {
   final Event event;
   final Division? division;
   const _SkillsList({required this.event, this.division});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SkillsList> createState() => _SkillsListState();
+}
+
+class _SkillsListState extends ConsumerState<_SkillsList> {
+  int _refreshKey = 0;
+
+  Future<void> _handleRefresh() async {
+    ref.read(eventsRepositoryProvider).clearSkillsCache(widget.event.id);
+    setState(() => _refreshKey++);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: ref.read(eventsRepositoryProvider).getEventSkills(event.id),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CupertinoActivityIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(
-              child: Text('Error: ${snapshot.error}',
-                  style:
-                      const TextStyle(color: CupertinoColors.destructiveRed)));
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(
-              child: Text('No skills data available.',
-                  style: TextStyle(color: CupertinoColors.secondaryLabel)));
-        }
-
-        // Group skills by team and aggregate scores
-        var skillsRaw = snapshot.data!;
-
-        if (division != null) {
-          // Note: Skills might be shared, but if we have division data, we can filter.
-          // User requested explicit text saying skills are shared.
-          // But if the API returns division-specific skills list, we might have duplicates?
-          // Usually skills are global to the event.
-          // Let's filter if divisionId is present, otherwise show all.
-          // BUT: "in Skills tab add a small info section (thin) that says Skills are shared between all divisions."
-          // This implies we should maybe NOT filter completely, or at least show the message.
-          // If I filter, I might hide skills done in other divisions if they are tracked that way?
-          // RobotEvents usually aggregates skills for the whole event.
-          // However, my ApiClient injects divisionId from where it fetched it.
-          // If I fetch skills from Division A endpoint, do I get skills from Division B?
-          // Usually no.
-          // So if we have multiple divisions, we probably want to see ALL skills for the event?
-          // "Skills are shared between all divisions" suggests the list should include everyone.
-          // So I will NOT filter by division here, but I WILL add the info section.
-        }
-
-        final teamSkills = <int, _TeamSkillAggregate>{};
-
-        for (final skill in skillsRaw) {
-          final teamMap = skill['team'] as Map<String, dynamic>?;
-          if (teamMap == null) continue;
-          final teamId = teamMap['id'] as int;
-          final teamNum = teamMap['name'] as String? ?? '?';
-          final score = skill['score'] as int? ?? 0;
-          final type = skill['type'] as String? ?? '';
-
-          if (!teamSkills.containsKey(teamId)) {
-            teamSkills[teamId] = _TeamSkillAggregate(
-              teamId: teamId,
-              teamNumber: teamNum,
+    return RefreshIndicator.adaptive(
+      onRefresh: _handleRefresh,
+      child: FutureBuilder<List<Map<String, dynamic>>>(
+        key: ValueKey('skills-$_refreshKey'),
+        future:
+            ref.read(eventsRepositoryProvider).getEventSkills(widget.event.id),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CupertinoActivityIndicator());
+          }
+          if (snapshot.hasError) {
+            return ListView(
+              children: [
+                SizedBox(
+                  height: 200,
+                  child: Center(
+                      child: Text('Error: ${snapshot.error}',
+                          style: const TextStyle(
+                              color: CupertinoColors.destructiveRed))),
+                ),
+              ],
+            );
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return ListView(
+              children: const [
+                SizedBox(
+                  height: 200,
+                  child: Center(
+                      child: Text('No skills data available.',
+                          style: TextStyle(
+                              color: CupertinoColors.secondaryLabel))),
+                ),
+              ],
             );
           }
 
-          final agg = teamSkills[teamId]!;
-          if (type == 'programming') {
-            if (score > agg.programming) agg.programming = score;
-          } else if (type == 'driver') {
-            if (score > agg.driver) agg.driver = score;
+          // Group skills by team and aggregate scores
+          final skillsRaw = snapshot.data!;
+
+          final teamSkills = <int, _TeamSkillAggregate>{};
+
+          for (final skill in skillsRaw) {
+            final teamMap = skill['team'] as Map<String, dynamic>?;
+            if (teamMap == null) continue;
+            final teamId = teamMap['id'] as int;
+            final teamNum = teamMap['name'] as String? ?? '?';
+            final score = skill['score'] as int? ?? 0;
+            final type = skill['type'] as String? ?? '';
+            final attempts = skill['attempts'] as int? ?? 0;
+
+            if (!teamSkills.containsKey(teamId)) {
+              teamSkills[teamId] = _TeamSkillAggregate(
+                teamId: teamId,
+                teamNumber: teamNum,
+              );
+            }
+
+            final agg = teamSkills[teamId]!;
+            if (type == 'programming') {
+              if (score > agg.programming) {
+                agg.programming = score;
+                agg.programmingAttempts = attempts;
+              }
+            } else if (type == 'driver') {
+              if (score > agg.driver) {
+                agg.driver = score;
+                agg.driverAttempts = attempts;
+              }
+            }
           }
-        }
 
-        // Create sorted list by combined score
-        final sortedTeams = teamSkills.values.toList()
-          ..sort((a, b) => b.combinedScore.compareTo(a.combinedScore));
+          // Create sorted list by combined score
+          final sortedTeams = teamSkills.values.toList()
+            ..sort((a, b) => b.combinedScore.compareTo(a.combinedScore));
 
-        // Assign ranks
-        for (int i = 0; i < sortedTeams.length; i++) {
-          sortedTeams[i].rank = i + 1;
-        }
+          // Assign ranks
+          for (int i = 0; i < sortedTeams.length; i++) {
+            sortedTeams[i].rank = i + 1;
+          }
 
-        return Column(
-          children: [
-            if (division != null)
-              Container(
-                width: double.infinity,
-                color: CupertinoColors.systemYellow.withValues(alpha: 0.1),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    const Icon(CupertinoIcons.info_circle_fill,
-                        size: 14, color: CupertinoColors.systemYellow),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Skills are shared between all divisions.',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: CupertinoColors.label.resolveFrom(context)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: sortedTeams.length,
-                itemBuilder: (context, index) {
-                  final item = sortedTeams[index];
-                  return CupertinoListTile.notched(
-                    leading: Container(
-                      width: 32,
-                      height: 32,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: CupertinoColors.secondarySystemGroupedBackground
-                            .resolveFrom(context),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text('${item.rank}',
+          return Column(
+            children: [
+              if (widget.division != null)
+                Container(
+                  width: double.infinity,
+                  color: CupertinoColors.systemYellow.withValues(alpha: 0.1),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(CupertinoIcons.info_circle_fill,
+                          size: 14, color: CupertinoColors.systemYellow),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Skills are shared between all divisions.',
                           style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: 12,
                               color:
-                                  CupertinoColors.label.resolveFrom(context))),
-                    ),
-                    title: Text(item.teamNumber,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 17)),
-                    subtitle: Text(
-                        'Prog: ${item.programming}    Driver: ${item.driver}',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: CupertinoColors.secondaryLabel
-                                .resolveFrom(context))),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${item.combinedScore}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: primaryColor,
-                          fontSize: 18,
+                                  CupertinoColors.label.resolveFrom(context)),
                         ),
                       ),
-                    ),
-                    onTap: () {
-                      final teamNum = item.teamNumber;
-                      final teamRepo = ref.read(teamsRepositoryProvider);
-                      // Try to find team locally, otherwise construct a partial Team model
-                      // to avoid a full API fetch for now (the team screen will handle it)
-                      Team? team = teamRepo.findLocalTeamByNumber(teamNum);
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: sortedTeams.length,
+                  itemBuilder: (context, index) {
+                    final item = sortedTeams[index];
+                    return CupertinoListTile.notched(
+                      leading: Container(
+                        width: 32,
+                        height: 32,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: CupertinoColors
+                              .secondarySystemGroupedBackground
+                              .resolveFrom(context),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text('${item.rank}',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: CupertinoColors.label
+                                    .resolveFrom(context))),
+                      ),
+                      title: Text(item.teamNumber,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 17)),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Prog',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: CupertinoColors.secondaryLabel
+                                        .resolveFrom(context))),
+                            const SizedBox(width: 4),
+                            _SkillPill(
+                                score: item.programming,
+                                attempts: item.programmingAttempts,
+                                color: primaryColor),
+                            const SizedBox(width: 10),
+                            Text('Driver',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: CupertinoColors.secondaryLabel
+                                        .resolveFrom(context))),
+                            const SizedBox(width: 4),
+                            _SkillPill(
+                                score: item.driver,
+                                attempts: item.driverAttempts,
+                                color: primaryColor),
+                          ],
+                        ),
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${item.combinedScore}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: primaryColor,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      onTap: () {
+                        final teamNum = item.teamNumber;
+                        final teamRepo = ref.read(teamsRepositoryProvider);
+                        Team? team = teamRepo.findLocalTeamByNumber(teamNum);
 
-                      team ??= Team(
-                        id: item.teamId,
-                        number: teamNum,
-                        name:
-                            '', // We don't have the full name here easily, but the screen handles it
-                        eventId: event.id,
-                      );
+                        team ??= Team(
+                          id: item.teamId,
+                          number: teamNum,
+                          name: '',
+                          eventId: widget.event.id,
+                        );
 
-                      Navigator.of(context).push(CupertinoPageRoute(
-                          builder: (_) =>
-                              TeamAtEventScreen(team: team!, event: event)));
-                    },
-                  );
-                },
+                        Navigator.of(context).push(CupertinoPageRoute(
+                            builder: (_) => TeamAtEventScreen(
+                                team: team!, event: widget.event)));
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -953,6 +1051,8 @@ class _TeamSkillAggregate {
   final String teamNumber;
   int programming = 0;
   int driver = 0;
+  int programmingAttempts = 0;
+  int driverAttempts = 0;
   int rank = 0;
 
   _TeamSkillAggregate({
@@ -963,157 +1063,384 @@ class _TeamSkillAggregate {
   int get combinedScore => programming + driver;
 }
 
+/// A small pill widget showing a score and an attempt count.
+class _SkillPill extends StatelessWidget {
+  final int score;
+  final int attempts;
+  final Color color;
+
+  const _SkillPill({
+    required this.score,
+    required this.attempts,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Score pill
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            '$score',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: color,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        if (attempts > 0) ...[
+          const SizedBox(width: 3),
+          // Attempts pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemGrey5.resolveFrom(context),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${attempts}x',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 10,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 // ---------- AWARDS ----------
 
-class _AwardsList extends ConsumerWidget {
+class _AwardsList extends ConsumerStatefulWidget {
   final Event event;
   final Division? division;
   const _AwardsList({required this.event, this.division});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AwardsList> createState() => _AwardsListState();
+}
+
+class _AwardsListState extends ConsumerState<_AwardsList> {
+  int _refreshKey = 0;
+
+  Future<void> _handleRefresh() async {
+    ref.read(eventsRepositoryProvider).clearAwardsCache(widget.event.id);
+    setState(() => _refreshKey++);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: ref.read(eventsRepositoryProvider).getEventAwards(event.id),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CupertinoActivityIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(
-              child: Text('Error: ${snapshot.error}',
-                  style:
-                      const TextStyle(color: CupertinoColors.destructiveRed)));
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(
-              child: Text('No awards available.',
-                  style: TextStyle(color: CupertinoColors.secondaryLabel)));
-        }
 
-        final awards = List<Map<String, dynamic>>.from(snapshot.data!);
-
-        // Sort awards by title priority
-        awards.sort((a, b) {
-          final t1 = (a['title'] as String? ?? '').toLowerCase();
-          final t2 = (b['title'] as String? ?? '').toLowerCase();
-
-          int getPriority(String title) {
-            if (title.contains('excellence')) return 0;
-            if (title.contains('champion')) return 1;
-            if (title.contains('design')) return 2;
-            if (title.contains('2nd place')) return 3;
-            if (title.contains('3rd place')) return 4;
-            if (title.contains('skills champion')) return 5;
-            if (title.contains('skills 2nd')) return 6;
-            if (title.contains('skills 3rd')) return 7;
-            if (title.contains('judges')) return 8;
-            if (title.contains('innovate')) return 9;
-            if (title.contains('think')) return 10;
-            if (title.contains('amaze')) return 11;
-            if (title.contains('build')) return 12;
-            if (title.contains('create')) return 13;
-            if (title.contains('energy')) return 14;
-            if (title.contains('sportsmanship')) return 15;
-            return 100;
+    return RefreshIndicator.adaptive(
+      onRefresh: _handleRefresh,
+      child: FutureBuilder<List<dynamic>>(
+        key: ValueKey('awards-$_refreshKey'),
+        future: Future.wait<dynamic>([
+          ref.read(eventsRepositoryProvider).getEventAwards(widget.event.id),
+          ref
+              .read(teamsRepositoryProvider)
+              .fetchTeams(widget.event.id), // cache teams
+        ]),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CupertinoActivityIndicator());
           }
-
-          final p1 = getPriority(t1);
-          final p2 = getPriority(t2);
-
-          if (p1 != p2) return p1.compareTo(p2);
-          return t1.compareTo(t2);
-        });
-
-        final displayItems = <CupertinoListTile>[];
-
-        for (final award in awards) {
-          final title = award['title'] ?? 'Award';
-          final teamWinners = award['teamWinners'] as List? ?? [];
-          final qualifications = award['qualifications'] as List? ?? [];
-          final qualifiesToWorld = qualifications
-              .any((q) => q.toString().toLowerCase().contains('world'));
-
-          Widget titleWidget;
-          if (qualifiesToWorld) {
-            titleWidget = Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(text: title),
-                  WidgetSpan(
-                    alignment: PlaceholderAlignment.middle,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 6.0),
-                      child: Icon(CupertinoIcons.globe,
-                          size: 16, color: primaryColor),
-                    ),
-                  ),
-                ],
-              ),
-              maxLines: null,
-              softWrap: true,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+          if (snapshot.hasError) {
+            return ListView(
+              children: [
+                SizedBox(
+                  height: 200,
+                  child: Center(
+                      child: Text('Error: ${snapshot.error}',
+                          style: const TextStyle(
+                              color: CupertinoColors.destructiveRed))),
+                ),
+              ],
             );
-          } else {
-            titleWidget = Text(title,
-                maxLines: null,
-                softWrap: true,
-                style: const TextStyle(fontWeight: FontWeight.w600));
+          }
+          final data = snapshot.data;
+          final awardsRaw = data?[0] as List<Map<String, dynamic>>?;
+
+          if (awardsRaw == null || awardsRaw.isEmpty) {
+            return ListView(
+              children: const [
+                SizedBox(
+                  height: 200,
+                  child: Center(
+                      child: Text('No awards available.',
+                          style: TextStyle(
+                              color: CupertinoColors.secondaryLabel))),
+                ),
+              ],
+            );
           }
 
-          if (teamWinners.isEmpty) {
-            displayItems.add(CupertinoListTile.notched(
-              title: titleWidget,
-              leading: const Icon(CupertinoIcons.gift,
-                  color: CupertinoColors.systemGrey),
-            ));
-          } else {
+          final awards = List<Map<String, dynamic>>.from(awardsRaw);
+
+          // Sort awards by title priority
+          awards.sort((a, b) {
+            final t1 = (a['title'] as String? ?? '').toLowerCase();
+            final t2 = (b['title'] as String? ?? '').toLowerCase();
+
+            int getPriority(String title) {
+              if (title.contains('excellence')) return 0;
+              if (title.contains('champion')) return 1;
+              if (title.contains('design')) return 2;
+              if (title.contains('2nd place')) return 3;
+              if (title.contains('3rd place')) return 4;
+              if (title.contains('skills champion')) return 5;
+              if (title.contains('skills 2nd')) return 6;
+              if (title.contains('skills 3rd')) return 7;
+              if (title.contains('judges')) return 8;
+              if (title.contains('innovate')) return 9;
+              if (title.contains('think')) return 10;
+              if (title.contains('amaze')) return 11;
+              if (title.contains('build')) return 12;
+              if (title.contains('create')) return 13;
+              if (title.contains('energy')) return 14;
+              if (title.contains('sportsmanship')) return 15;
+              return 100;
+            }
+
+            final p1 = getPriority(t1);
+            final p2 = getPriority(t2);
+            if (p1 != p2) return p1.compareTo(p2);
+            return t1.compareTo(t2);
+          });
+
+          // Group awards: each award title may have multiple teamWinners.
+          // Build a list of _AwardEntry objects (one per award, possibly multiple teams).
+          final List<_AwardEntry> entries = [];
+
+          for (final award in awards) {
+            var title = (award['title'] as String? ?? 'Award').trim();
+            // Remove trailing (VIQRC), (VRC), etc.
+            title = title.replaceAll(
+                RegExp(r'\s*\((VIQRC|VRC|VEX U|VIQC|VEXU)\)$',
+                    caseSensitive: false),
+                '');
+
+            final teamWinners = award['teamWinners'] as List? ?? [];
+            final qualifications = award['qualifications'] as List? ?? [];
+            final qualifiesToWorld = qualifications
+                .any((q) => q.toString().toLowerCase().contains('world'));
+
+            // Collect all winning teams for this award
+            final List<_AwardTeam> teams = [];
             for (final w in teamWinners) {
               final teamMap = w['team'] as Map<String, dynamic>?;
-              final num = teamMap?['name'] ?? 'Unknown';
-              final teamId = teamMap?['id'] as int?;
-              displayItems.add(CupertinoListTile.notched(
-                title: titleWidget,
-                leading: Icon(CupertinoIcons.gift_fill, color: primaryColor),
-                additionalInfo: Text(num,
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                        fontSize: 16)),
-                trailing: const CupertinoListTileChevron(),
-                onTap: teamId == null
-                    ? null
-                    : () {
-                        final teamRepo = ref.read(teamsRepositoryProvider);
-                        Team? team = teamRepo.findLocalTeamByNumber(num);
+              if (teamMap == null) continue;
+              final teamNum = (teamMap['name'] as String? ?? '').trim();
 
-                        team ??= Team(
-                          id: teamId,
-                          number: num,
-                          name: '',
-                          eventId: event.id,
-                        );
+              String teamName = (teamMap['team_name'] as String? ??
+                      teamMap['teamName'] as String? ??
+                      '')
+                  .trim();
 
-                        Navigator.of(context).push(CupertinoPageRoute(
-                            builder: (_) =>
-                                TeamAtEventScreen(team: team!, event: event)));
-                      },
-              ));
+              // Fallback to local teams repository if name is empty
+              if (teamName.isEmpty || teamName == teamNum) {
+                final localTeam = ref
+                    .read(teamsRepositoryProvider)
+                    .findLocalTeamByNumber(teamNum);
+                if (localTeam != null && localTeam.name.isNotEmpty) {
+                  teamName = localTeam.name;
+                }
+              }
+
+              final teamId = teamMap['id'] as int?;
+              teams.add(_AwardTeam(
+                  number: teamNum.isEmpty ? '?' : teamNum,
+                  name: teamName,
+                  id: teamId));
             }
-          }
-        }
 
-        return ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            CupertinoListSection.insetGrouped(
-              header: const Text('AWARDS'),
-              margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              children: displayItems,
-            ),
-          ],
-        );
-      },
+            entries.add(_AwardEntry(
+              title: title,
+              teams: teams,
+              qualifiesToWorld: qualifiesToWorld,
+            ));
+          }
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Column(
+                  children: entries.asMap().entries.map((e) {
+                    final index = e.key;
+                    final entry = e.value;
+                    return _AwardRow(
+                      entry: entry,
+                      primaryColor: primaryColor,
+                      event: widget.event,
+                      isLast: index == entries.length - 1,
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ---- Award data helpers ----
+
+class _AwardTeam {
+  final String number;
+  final String name;
+  final int? id;
+  const _AwardTeam({required this.number, required this.name, this.id});
+}
+
+class _AwardEntry {
+  final String title;
+  final List<_AwardTeam> teams;
+  final bool qualifiesToWorld;
+  const _AwardEntry(
+      {required this.title,
+      required this.teams,
+      required this.qualifiesToWorld});
+}
+
+class _AwardRow extends ConsumerWidget {
+  final _AwardEntry entry;
+  final Color primaryColor;
+  final Event event;
+  final bool isLast;
+
+  const _AwardRow({
+    required this.entry,
+    required this.primaryColor,
+    required this.event,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = CupertinoTheme.brightnessOf(context) == Brightness.dark;
+    final cardColor = isDark
+        ? CupertinoColors.secondarySystemGroupedBackground.darkColor
+        : CupertinoColors.secondarySystemGroupedBackground;
+    final separatorColor = isDark
+        ? CupertinoColors.separator.darkColor
+        : CupertinoColors.separator;
+    final secondaryTextColor = isDark
+        ? CupertinoColors.secondaryLabel.darkColor
+        : CupertinoColors.secondaryLabel;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        border: isLast
+            ? null
+            : Border(
+                bottom:
+                    BorderSide(color: separatorColor.withValues(alpha: 0.5)),
+              ),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 11.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Award title row ──
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      entry.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                      maxLines: 2,
+                      softWrap: true,
+                    ),
+                  ),
+                  if (entry.qualifiesToWorld) ...[
+                    const SizedBox(width: 8),
+                    Icon(CupertinoIcons.globe, size: 18, color: primaryColor),
+                  ],
+                ],
+              ),
+              // ── Winning teams ──
+              if (entry.teams.isNotEmpty)
+                ...entry.teams.map((team) {
+                  return GestureDetector(
+                    onTap: team.id == null
+                        ? null
+                        : () {
+                            final teamRepo = ref.read(teamsRepositoryProvider);
+                            Team? t =
+                                teamRepo.findLocalTeamByNumber(team.number);
+                            t ??= Team(
+                              id: team.id!,
+                              number: team.number,
+                              name: team.name,
+                              eventId: event.id,
+                            );
+                            Navigator.of(context).push(CupertinoPageRoute(
+                                builder: (_) =>
+                                    TeamAtEventScreen(team: t!, event: event)));
+                          },
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Row(
+                        children: [
+                          Text(
+                            team.number,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: secondaryTextColor,
+                            ),
+                          ),
+                          if (team.name.isNotEmpty) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                team.name,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: secondaryTextColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                          if (team.id != null)
+                            Icon(CupertinoIcons.chevron_right,
+                                size: 12, color: secondaryTextColor),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

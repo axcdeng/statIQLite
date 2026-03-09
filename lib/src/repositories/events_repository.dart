@@ -163,8 +163,9 @@ class EventsRepository {
     return events;
   }
 
-  Future<List<Map<String, dynamic>>> getEventAwards(int eventId) async {
-    if (_awardsCache.containsKey(eventId)) {
+  Future<List<Map<String, dynamic>>> getEventAwards(int eventId,
+      {bool forceRefresh = false}) async {
+    if (!forceRefresh && _awardsCache.containsKey(eventId)) {
       return _awardsCache[eventId]!;
     }
     final data = await _apiClient.getEventAwards(eventId);
@@ -172,12 +173,22 @@ class EventsRepository {
     return data;
   }
 
-  Future<List<Map<String, dynamic>>> getEventSkills(int eventId) async {
-    if (_skillsCache.containsKey(eventId)) {
+  void clearAwardsCache(int eventId) => _awardsCache.remove(eventId);
+
+  Future<List<Map<String, dynamic>>> getEventSkills(int eventId,
+      {bool forceRefresh = false}) async {
+    if (!forceRefresh && _skillsCache.containsKey(eventId)) {
       return _skillsCache[eventId]!;
     }
     final data = await _apiClient.getEventSkills(eventId);
     _skillsCache[eventId] = data;
     return data;
+  }
+
+  void clearSkillsCache(int eventId) => _skillsCache.remove(eventId);
+
+  void clearRankingsCache(int eventId) {
+    _rankingsCache.remove(eventId);
+    _finalistRankingsCache.remove(eventId);
   }
 }

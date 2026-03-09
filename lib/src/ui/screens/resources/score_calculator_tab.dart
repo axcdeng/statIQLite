@@ -136,10 +136,11 @@ class _ScoreCalculatorTabState extends State<ScoreCalculatorTab> {
                 // Total Score
                 Column(
                   children: [
-                    const Text(
+                    Text(
                       'TOTAL SCORE',
                       style: TextStyle(
-                        color: CupertinoColors.secondaryLabel,
+                        color:
+                            CupertinoColors.secondaryLabel.resolveFrom(context),
                         fontWeight: FontWeight.w700,
                         fontSize: 10,
                         letterSpacing: 1.5,

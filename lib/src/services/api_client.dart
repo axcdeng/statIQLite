@@ -371,6 +371,9 @@ class ApiClient {
           'worldRank': json['rank'] is String
               ? int.tryParse(json['rank'] as String)
               : json['rank'] as int?,
+          'trueskill_data': {
+            'pureScore': (json['value'] as num? ?? 0) / 3,
+          },
           // Expose key TrueSkill fields inside a statiq sub-map so Team.fromJson
           // can pick them up the same way it always has.
           'statiq': {
