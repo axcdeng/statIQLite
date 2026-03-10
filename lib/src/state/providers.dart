@@ -14,6 +14,8 @@ import 'package:roboscout_iq/src/services/secure_storage_service.dart';
 import 'package:roboscout_iq/src/services/sync_service.dart';
 import 'package:roboscout_iq/src/state/settings_provider.dart';
 import 'package:roboscout_iq/src/repositories/leaderboard_repository.dart';
+import 'package:roboscout_iq/src/services/game_manual_service.dart';
+import 'package:roboscout_iq/src/models/game_rule.dart';
 
 // Services
 final localDbServiceProvider = Provider((ref) => LocalDbService());
@@ -24,6 +26,16 @@ final favoritesServiceProvider =
 final secureStorageServiceProvider = Provider((ref) => SecureStorageService());
 final historyServiceProvider =
     Provider((ref) => HistoryService(ref.read(localDbServiceProvider)));
+
+final gameManualServiceProvider = Provider((ref) {
+  final localDb = ref.read(localDbServiceProvider);
+  final apiClient = ref.read(apiClientProvider);
+  return GameManualService(apiClient.dio, localDb.gameManualBox);
+});
+
+final gameManualRulesProvider = FutureProvider<List<GameRule>>((ref) async {
+  return ref.read(gameManualServiceProvider).getRules();
+});
 
 final settingsProvider =
     StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {

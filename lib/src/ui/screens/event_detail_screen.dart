@@ -976,29 +976,25 @@ class _SkillsListState extends ConsumerState<_SkillsList> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('Prog',
+                            Text('Prog:',
                                 style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
                                     color: CupertinoColors.secondaryLabel
                                         .resolveFrom(context))),
                             const SizedBox(width: 4),
                             _SkillPill(
                                 score: item.programming,
-                                attempts: item.programmingAttempts,
-                                color: primaryColor),
-                            const SizedBox(width: 10),
-                            Text('Driver',
+                                attempts: item.programmingAttempts),
+                            const SizedBox(width: 12),
+                            Text('Driver:',
                                 style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
                                     color: CupertinoColors.secondaryLabel
                                         .resolveFrom(context))),
                             const SizedBox(width: 4),
                             _SkillPill(
                                 score: item.driver,
-                                attempts: item.driverAttempts,
-                                color: primaryColor),
+                                attempts: item.driverAttempts),
                           ],
                         ),
                       ),
@@ -1063,16 +1059,14 @@ class _TeamSkillAggregate {
   int get combinedScore => programming + driver;
 }
 
-/// A small pill widget showing a score and an attempt count.
+/// A small widget showing a score and its attempt count badge.
 class _SkillPill extends StatelessWidget {
   final int score;
   final int attempts;
-  final Color color;
 
   const _SkillPill({
     required this.score,
     required this.attempts,
-    required this.color,
   });
 
   @override
@@ -1080,37 +1074,28 @@ class _SkillPill extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Score pill
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            '$score',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: color,
-              fontSize: 12,
-            ),
+        Text(
+          '$score',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: CupertinoColors.label.resolveFrom(context),
           ),
         ),
         if (attempts > 0) ...[
-          const SizedBox(width: 3),
-          // Attempts pill
+          const SizedBox(width: 4),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
             decoration: BoxDecoration(
               color: CupertinoColors.systemGrey5.resolveFrom(context),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               '${attempts}x',
               style: TextStyle(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                fontSize: 10,
+                fontSize: 9,
               ),
             ),
           ),

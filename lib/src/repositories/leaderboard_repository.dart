@@ -79,7 +79,8 @@ class LeaderboardRepository {
 
   Future<List<Map<String, dynamic>>> getGlobalSkills(String gradeLevel,
       {bool forceRefresh = false}) async {
-    final cacheKey = 'skills_$gradeLevel';
+    // v2 prefix busts old RoboStem-sourced cache after switch to RobotEvents API.
+    final cacheKey = 'skills_v2_$gradeLevel';
 
     // 1. Serve from cache if valid and not forcing a refresh.
     if (!forceRefresh) {
@@ -136,7 +137,8 @@ class LeaderboardRepository {
 
   Future<List<Team>> getGlobalTrueSkillRankings(
       {String? country, bool forceRefresh = false}) async {
-    final cacheKey = 'trueskill_pure_global_${country ?? ""}';
+    // v2 prefix matches the versioned cache scheme applied to skills_v2_*.
+    final cacheKey = 'trueskill_v2_pure_global_${country ?? ""}';
 
     // 1. Serve from cache if valid.
     if (!forceRefresh) {
@@ -177,6 +179,11 @@ class LeaderboardRepository {
     } finally {
       _activeFetches.remove(cacheKey);
     }
+  }
+
+  Future<int?> getTrueSkillRankForTeam(String teamNumber) async {
+    await _ensureGlobalRankCache();
+    return _globalRankCache[teamNumber];
   }
 
   // ---------------------------------------------------------------------------

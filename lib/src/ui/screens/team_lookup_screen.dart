@@ -10,6 +10,7 @@ import 'package:roboscout_iq/src/ui/screens/event_divisions_screen.dart';
 import 'package:roboscout_iq/src/ui/screens/events_list_screen.dart';
 import 'package:roboscout_iq/src/utils/country_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:roboscout_iq/src/constants.dart';
 import 'dart:async';
 
 class TeamLookupScreen extends ConsumerStatefulWidget {
@@ -25,9 +26,18 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
   // Search State
   bool _isLoading = false;
   Team? _team;
-  Map<String, dynamic>? _worldSkillsData;
   String? _errorMessage;
   int _tabIndex = 0;
+
+  // Lazy Loaded Stats
+  bool _worldRankIsLoading = false;
+  bool _worldScoreIsLoading = false;
+  bool _trueSkillIsLoading = false;
+
+  int? _worldSkillsRank;
+  int? _worldBestScore;
+  int? _trueSkillRank;
+  double? _trueSkillRating;
 
   @override
   void dispose() {
@@ -46,7 +56,14 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
       _isLoading = true;
       _errorMessage = null;
       _team = null;
-      _worldSkillsData = null;
+
+      _worldRankIsLoading = false;
+      _worldScoreIsLoading = false;
+      _trueSkillIsLoading = false;
+      _worldSkillsRank = null;
+      _worldBestScore = null;
+      _trueSkillRank = null;
+      _trueSkillRating = null;
     });
 
     try {
@@ -67,18 +84,72 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
 
       final team = teams.first;
 
-      // 2. Fetch World Skills Data (pass grade level for targeted search)
-      final skillsData =
-          await repo.getTeamSkillRank(team.number, gradeLevel: team.grade);
-
       if (mounted) {
         setState(() {
           _team = team;
-          _worldSkillsData = skillsData;
           _isLoading = false;
+
+          // Start lazy loading individual stats
+          _worldRankIsLoading = true;
+          _worldScoreIsLoading = true;
+          _trueSkillIsLoading = true;
         });
+
         // Add to history
         ref.read(historyServiceProvider).addTeamToHistory(team);
+
+        // 2. Fetch World Skills Rank
+        repo.getTeamSkillRank(team.number, gradeLevel: team.grade).then((data) {
+          if (mounted) {
+            setState(() {
+              _worldSkillsRank = data?['rank'];
+              _worldRankIsLoading = false;
+            });
+          }
+        }).catchError((e) {
+          if (mounted) setState(() => _worldRankIsLoading = false);
+        });
+
+        // 3. Fetch Highest Season Score from RE API
+        repo
+            .getTeamWorldBestSkills(team.id, AppConstants.currentSeasonId)
+            .then((score) {
+          if (mounted) {
+            setState(() {
+              _worldBestScore = score;
+              _worldScoreIsLoading = false;
+            });
+          }
+        }).catchError((e) {
+          if (mounted) setState(() => _worldScoreIsLoading = false);
+        });
+
+        // 4. Fetch TrueSkill Stats from RoboStem and Leaderboard
+        try {
+          final stats = await ref
+              .read(teamsRepositoryProvider)
+              .getTeamTrueSkillStats(team.id, AppConstants.currentSeasonId);
+          final trueSkRank = await ref
+              .read(leaderboardRepositoryProvider)
+              .getTrueSkillRankForTeam(team.number);
+
+          if (mounted) {
+            setState(() {
+              if (stats != null) {
+                // Override the rank from the Generic Stats API (which is EPA rank)
+                // with the actual TrueSkill rank from the leaderboard.
+                _trueSkillRank = trueSkRank ?? stats['rank'];
+                _trueSkillRating =
+                    (stats['ts_conservative'] as num?)?.toDouble() != null
+                        ? (stats['ts_conservative'] as num).toDouble() / 3.0
+                        : null;
+              }
+              _trueSkillIsLoading = false;
+            });
+          }
+        } catch (e) {
+          if (mounted) setState(() => _trueSkillIsLoading = false);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -294,14 +365,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
     final isFavorite = favoriteService.isTeamFavorite(_team!.number);
     final primaryColor = Theme.of(context).colorScheme.primary;
 
-    // Stats
-    final worldRank = _worldSkillsData?['rank'] ?? _team!.worldRank;
-    final worldScore =
-        _worldSkillsData?['skills']?['combined'] ?? _worldSkillsData?['score'];
-    final trueskill = _team!.trueskill;
-    final trueSkillRank =
-        _team!.statiq?['globalRank'] ?? _team!.statiq?['programRank'];
-    final epa = _team!.statiq?['epa'] ?? _team!.statiq?['statiqScore'];
+    // Stats logic handled by incremental state updates
     // Grade label: "MS" or "ES"
     final gradeLabel =
         _team!.grade == 'Elementary School' || _team!.grade == 'ES'
@@ -409,14 +473,26 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
               _buildInfoRow('Organization', _team!.organization!),
             if (_team!.location != null)
               _buildInfoRow('Location', _team!.location!),
-            _buildInfoRow('World Skills Rank', worldRank?.toString() ?? 'N/A'),
             _buildInfoRow(
-                'World Skills Score', worldScore?.toString() ?? 'N/A'),
+                'World Skills Rank',
+                _worldRankIsLoading
+                    ? 'Loading...'
+                    : (_worldSkillsRank?.toString() ?? 'N/A')),
             _buildInfoRow(
-                'TrueSkill Ranking', trueSkillRank?.toString() ?? 'N/A'),
-            _buildInfoRow('TrueSkill Rating',
-                (trueskill as num?)?.toStringAsFixed(2) ?? 'N/A'),
-            _buildEpaRow((epa as num?)?.toStringAsFixed(2) ?? 'N/A'),
+                'World Skills Score',
+                _worldScoreIsLoading
+                    ? 'Loading...'
+                    : (_worldBestScore?.toString() ?? 'N/A')),
+            _buildInfoRow(
+                'TrueSkill Ranking',
+                _trueSkillIsLoading
+                    ? 'Loading...'
+                    : (_trueSkillRank?.toString() ?? 'N/A')),
+            _buildInfoRow(
+                'TrueSkill Rating',
+                _trueSkillIsLoading
+                    ? 'Loading...'
+                    : (_trueSkillRating?.toStringAsFixed(2) ?? 'N/A')),
           ],
         ),
         const SizedBox(height: 12),
@@ -473,75 +549,6 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
                 color: CupertinoColors.label.resolveFrom(context),
                 letterSpacing: -0.4,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// EPA row with info icon tooltip.
-  Widget _buildEpaRow(String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: CupertinoColors.separator,
-            width: 0.0,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: 'EPA per Match ',
-                  style: TextStyle(
-                      fontSize: 17,
-                      letterSpacing: -0.4,
-                      color:
-                          CupertinoColors.secondaryLabel.resolveFrom(context)),
-                ),
-                WidgetSpan(
-                  alignment: PlaceholderAlignment.middle,
-                  child: GestureDetector(
-                    onTap: () {
-                      showCupertinoDialog(
-                        context: context,
-                        barrierDismissible: true,
-                        builder: (ctx) => CupertinoAlertDialog(
-                          title: const Text('EPA (Expected Points Added)'),
-                          content: const Text(
-                              "Estimated Points Added per match. A metric to estimate a team's average contribution to the score."),
-                          actions: [
-                            CupertinoDialogAction(
-                              child: const Text('OK'),
-                              onPressed: () => Navigator.pop(ctx),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.only(left: 4.0),
-                      child: Icon(CupertinoIcons.info_circle,
-                          size: 18, color: CupertinoColors.systemGrey),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 17,
-              color: CupertinoColors.label.resolveFrom(context),
-              letterSpacing: -0.4,
             ),
           ),
         ],

@@ -13,6 +13,7 @@ class AppConstants {
   static const String teamHistoryBox = 'team_history_box';
   static const String eventHistoryBox = 'event_history_box';
   static const String leaderboardBox = 'leaderboard_cache_box';
+  static const String gameManualBox = 'game_manual_box';
 
   // RobotEvents API
   static const String robotEventsBaseUrl = 'https://www.robotevents.com/api/v2';

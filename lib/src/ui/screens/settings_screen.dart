@@ -208,6 +208,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       _showSkuDialog(context, ref);
                     },
                   ),
+                  _buildDivider(),
+                  _buildListTile(
+                    title: 'Debug: Reload Manual',
+                    titleColor: CupertinoColors.systemOrange,
+                    icon: CupertinoIcons.arrow_2_circlepath_circle_fill,
+                    iconColor: CupertinoColors.systemOrange,
+                    onTap: () async {
+                      try {
+                        await ref
+                            .read(localDbServiceProvider)
+                            .gameManualBox
+                            .clear();
+                        ref.invalidate(gameManualRulesProvider);
+                        if (context.mounted) {
+                          showCupertinoDialog(
+                            context: context,
+                            builder: (context) => CupertinoAlertDialog(
+                              title: const Text('Success'),
+                              content: const Text(
+                                  'Manual cache cleared and reloaded from assets/web.'),
+                              actions: [
+                                CupertinoDialogAction(
+                                  child: const Text('OK'),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        debugPrint('Error reloading manual: $e');
+                      }
+                    },
+                  ),
                 ],
               ),
             ),

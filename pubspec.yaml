@@ -28,6 +28,9 @@ dependencies:
   flutter_pdfview: ^1.4.4
   audioplayers: ^6.1.0
   crypto: ^3.0.0
+  flutter_markdown: ^0.7.1
+  html: ^0.15.4
+
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +57,7 @@ flutter:
     - assets/images/
     - assets/pdfs/
     - assets/audio/
+    - assets/game_manual.json
 
 dependency_overrides:
   win32: ^5.0.0

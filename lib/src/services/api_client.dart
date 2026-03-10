@@ -11,6 +11,7 @@ class ApiClient {
   final Dio _dio;
   // final SecureStorageService _secureStorage;
   final SettingsState _settings;
+  Dio get dio => _dio;
 
   ApiClient(this._settings)
       : _dio = Dio(BaseOptions(
@@ -250,63 +251,58 @@ class ApiClient {
 
   Future<List<Map<String, dynamic>>> getGlobalSkills(
       {String gradeLevel = 'Middle School'}) async {
-    // RoboStem API uses a different base URL and key
-    final token = _settings.roboStemApiKey ?? AppConstants.roboStemApiKey;
+    // Public RobotEvents season skills endpoint — no auth required.
+    // Grade param: 'Middle%20School' or 'Elementary' (not 'Elementary School').
+    final String gradeParam = gradeLevel.toLowerCase().contains('elementary')
+        ? 'Elementary'
+        : 'Middle School';
+
     final dio = Dio(BaseOptions(
-      baseUrl: AppConstants.roboStemBaseUrl, // https://api.robostem-api.org
-      headers: {
-        'x-api-key': token,
-        'accept': 'application/json',
-      },
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
     ));
 
+    debugPrint(
+        'DEBUG calling RobotEvents season skills: grade_level=$gradeParam');
+
     try {
-      // Map grade level to API values (elementary/es or middle/ms)
-      String grade = 'middle';
-      if (gradeLevel.toLowerCase().contains('elementary')) {
-        grade = 'elementary';
-      } else if (gradeLevel.toLowerCase().contains('high')) {
-        grade = 'high';
+      final response = await dio.get(
+        'https://www.robotevents.com/api/seasons/196/skills',
+        queryParameters: {
+          'post_season': 0,
+          'grade_level': gradeParam,
+        },
+      );
+
+      List<dynamic> rawList = [];
+      if (response.data is List) {
+        rawList = response.data as List;
       }
 
-      debugPrint(
-          'DEBUG calling RoboStem: /rankings/skills/world with params: ${{
-        'grade': grade,
-        'program': 'VIQRC',
-        'limit': 100,
-      }}');
-
-      // New API endpoint: /rankings/skills/world — requires both grade and program
-      final response =
-          await dio.get('/rankings/skills/world', queryParameters: {
-        'grade': grade,
-        'program': 'VIQRC', // required by API v2.1
-        'limit': 100,
-      });
-
-      List<Map<String, dynamic>> rawList = [];
-      if (response.data is Map && response.data['data'] is List) {
-        rawList = (response.data['data'] as List).cast<Map<String, dynamic>>();
-      } else if (response.data is List) {
-        rawList = (response.data as List).cast<Map<String, dynamic>>();
-      }
-
-      // Normalise numeric fields that arrive as strings from this endpoint
+      // Normalize nested API shape to the flat shape expected by the
+      // repository cache layer and the world skills screen:
+      //   rank, team_number, team_name, score, programming_score, driver_score
       return rawList.map((item) {
-        return {
-          ...item,
-          'score': _parseNum(item['score']),
-          'driver_score': _parseNum(item['driver_score']),
-          'programming_score': _parseNum(item['programming_score']),
-          'autonomous_score': _parseNum(item['autonomous_score']),
+        final map = item as Map<String, dynamic>;
+        final team = map['team'] as Map<String, dynamic>? ?? {};
+        final scores = map['scores'] as Map<String, dynamic>? ?? {};
+        return <String, dynamic>{
+          'rank': map['rank'],
+          'team_number': team['team'] ?? '',
+          'team_name': team['teamName'] ?? '',
+          'organization': team['organization'] ?? '',
+          'country': team['country'] ?? '',
+          'score': _parseNum(scores['score']) ?? 0,
+          'programming_score': _parseNum(scores['programming']) ?? 0,
+          'driver_score': _parseNum(scores['driver']) ?? 0,
         };
       }).toList();
     } catch (e) {
       if (e is DioException) {
         debugPrint(
-            'RoboStem API Error: ${e.message} ${e.response?.statusCode}');
+            'RobotEvents skills API error: ${e.message} ${e.response?.statusCode}');
+      } else {
+        debugPrint('getGlobalSkills error: $e');
       }
       return [];
     }
@@ -398,70 +394,40 @@ class ApiClient {
 
   Future<List<Team>> searchTeams(
       {String? number, int? program, int? limit}) async {
-    // Strategy: Use RobotEvents API for exact team lookup first,
-    // then enrich with RoboStem stats data.
-
+    // Return only basic team info for speed. Enrichment happens via lazy loading in UI.
     if (number != null) {
-      // 1. Get exact team from RobotEvents API (uses number[] for exact match)
-      final reTeam = await getTeamByNumber(number);
-
-      if (reTeam != null) {
-        // 2. Try to enrich with RoboStem stats
-        try {
-          final token = _settings.roboStemApiKey ?? AppConstants.roboStemApiKey;
-          final dio = Dio(BaseOptions(
-            baseUrl: AppConstants.roboStemBaseUrl,
-            headers: {
-              'x-api-key': token,
-              'accept': 'application/json',
-            },
-            connectTimeout: const Duration(seconds: 10),
-            receiveTimeout: const Duration(seconds: 10),
-          ));
-
-          final response = await dio.get('/api/teams', queryParameters: {
-            'number': reTeam.number,
-            'limit': 5,
-          });
-
-          List<dynamic> data;
-          if (response.data is Map && response.data.containsKey('data')) {
-            data = response.data['data'] as List;
-          } else if (response.data is List) {
-            data = response.data as List;
-          } else {
-            data = [];
-          }
-
-          // Find exact match in RoboStem results by team number
-          final roboStemMatch = data
-              .cast<Map<String, dynamic>>()
-              .where((d) =>
-                  (d['number'] as String?)?.toUpperCase() ==
-                  reTeam.number.toUpperCase())
-              .toList();
-
-          if (roboStemMatch.isNotEmpty) {
-            // Merge RoboStem stats into the RobotEvents team
-            final enriched = Team.fromJson(roboStemMatch.first);
-            return [
-              reTeam.copyWith(
-                statiq: enriched.statiq,
-                trueskill: enriched.trueskill,
-                worldRank: reTeam.worldRank ?? enriched.worldRank,
-              )
-            ];
-          }
-        } catch (e) {
-          debugPrint('RoboStem enrichment failed, using RobotEvents data: $e');
-        }
-
-        // Return RobotEvents team even without RoboStem enrichment
-        return [reTeam];
-      }
+      final team = await getTeamByNumber(number);
+      return team != null ? [team] : [];
     }
 
-    // Fallback: Generic RoboStem search (for non-number queries or if RE fails)
+    try {
+      final dio = Dio(BaseOptions(
+        baseUrl: AppConstants.robotEventsBaseUrl,
+        headers: {
+          'Authorization': 'Bearer ${AppConstants.robotEventsApiToken}',
+          'accept': 'application/json',
+        },
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+      ));
+
+      final queryParams = <String, dynamic>{
+        if (number != null) 'number[]': [number],
+        if (program != null) 'program[]': [program],
+        if (limit != null) 'per_page': limit,
+      };
+
+      final response = await dio.get('/teams', queryParameters: queryParams);
+      List<dynamic> data = response.data['data'] ?? [];
+      return data.map((json) => Team.fromJson(json)).toList();
+    } catch (e) {
+      debugPrint('RobotEvents API Search Error: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> getTeamTrueSkillStats(
+      int teamId, int seasonId) async {
     try {
       final token = _settings.roboStemApiKey ?? AppConstants.roboStemApiKey;
       final dio = Dio(BaseOptions(
@@ -470,87 +436,116 @@ class ApiClient {
           'x-api-key': token,
           'accept': 'application/json',
         },
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
       ));
 
-      final queryParams = <String, dynamic>{
-        if (number != null) 'number': number,
-        if (program != null) 'program': program,
-        if (limit != null) 'limit': limit,
-      };
+      final response = await dio.get('/api/teams/$teamId/stats',
+          queryParameters: {'season_id': seasonId});
 
-      final response =
-          await dio.get('/api/teams', queryParameters: queryParams);
-
-      List<dynamic> data;
-      if (response.data is Map && response.data.containsKey('data')) {
-        data = response.data['data'] as List;
-      } else if (response.data is List) {
-        data = response.data as List;
-      } else {
-        return [];
+      if (response.data is Map &&
+          response.data['data'] != null &&
+          response.data['data']['rankings'] != null) {
+        final rankings = response.data['data']['rankings'];
+        // Prefer viqrc rankings
+        final viqrcRankings = rankings['viqrc'] as List?;
+        if (viqrcRankings != null && viqrcRankings.isNotEmpty) {
+          return Map<String, dynamic>.from(viqrcRankings.first);
+        }
+        final v5rcRankings = rankings['v5rc'] as List?;
+        if (v5rcRankings != null && v5rcRankings.isNotEmpty) {
+          return Map<String, dynamic>.from(v5rcRankings.first);
+        }
       }
-
-      return data.map((json) => Team.fromJson(json)).toList();
     } catch (e) {
-      if (e is DioException) {
-        debugPrint('RoboStem API Search Error: ${e.message}');
-      }
-      return [];
+      debugPrint('Error fetching team TrueSkill stats: $e');
     }
+    return null;
   }
 
-  /// Fetches the World Skills rank for a specific team using the `team` param.
+  /// Searches up to 4 pages of the RobotEvents season skills leaderboard to find a team's rank.
   Future<Map<String, dynamic>?> getTeamSkillRank(String teamNumber,
       {String? gradeLevel}) async {
-    final token = _settings.roboStemApiKey ?? AppConstants.roboStemApiKey;
-    final dio = Dio(BaseOptions(
-      baseUrl: AppConstants.roboStemBaseUrl,
-      headers: {
-        'x-api-key': token,
-        'accept': 'application/json',
-      },
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-    ));
-
     try {
-      // Map human grade level string to API enum value
-      String grade = 'middle';
+      String grade = 'Middle%20School';
       if (gradeLevel != null) {
         if (gradeLevel.toLowerCase().contains('elementary')) {
-          grade = 'elementary';
-        } else if (gradeLevel.toLowerCase().contains('high')) {
-          grade = 'high';
+          grade = 'Elementary';
         }
       }
 
-      final queryParams = <String, dynamic>{
-        'team': teamNumber,
-        'program': 'VIQRC', // required by API v2.1
-        'grade': grade,
-        'limit': 1,
-      };
+      for (int page = 1; page <= 4; page++) {
+        final url =
+            'https://www.robotevents.com/api/seasons/${AppConstants.currentSeasonId}/skills?post_season=0&grade_level=$grade&page=$page';
+        final response = await _dio.get(url);
 
-      final response =
-          await dio.get('/skills/global', queryParameters: queryParams);
+        if (response.data is List) {
+          final data = response.data as List;
+          final match = data.firstWhere(
+            (item) =>
+                (item['team']['team'] as String).toUpperCase() ==
+                teamNumber.toUpperCase(),
+            orElse: () => null,
+          );
 
-      List<dynamic> data;
-      if (response.data is Map && response.data.containsKey('data')) {
-        data = response.data['data'] as List;
-      } else if (response.data is List) {
-        data = response.data as List;
-      } else {
-        return null;
-      }
-
-      if (data.isNotEmpty) {
-        return data.first as Map<String, dynamic>;
+          if (match != null) {
+            return {
+              'rank': match['rank'],
+              'score': match['scores']['score'],
+            };
+          }
+        } else {
+          break;
+        }
       }
       return null;
     } catch (e) {
-      debugPrint('Error fetching team skill rank: $e');
+      debugPrint('Error searching World Skills rank: $e');
+      return null;
+    }
+  }
+
+  /// Calculates the highest combined (driver + programming) skills score for a team in a season.
+  Future<int?> getTeamWorldBestSkills(int teamId, int seasonId) async {
+    await _addAuthHeader();
+    try {
+      final response = await _dio.get('/teams/$teamId/skills',
+          queryParameters: {'season[]': seasonId});
+      final data = response.data['data'] as List;
+
+      if (data.isEmpty) return null;
+
+      // Group by event ID to find best combined score at a single event
+      final eventScores = <int, Map<String, int>>{};
+
+      for (var skill in data) {
+        final eventId = skill['event']['id'] as int;
+        final type = skill['type'] as String; // 'driver' or 'programming'
+        final score = skill['score'] as int;
+
+        eventScores.putIfAbsent(eventId, () => {'driver': 0, 'programming': 0});
+        if (type == 'driver') {
+          if (score > eventScores[eventId]!['driver']!) {
+            eventScores[eventId]!['driver'] = score;
+          }
+        } else if (type == 'programming') {
+          if (score > eventScores[eventId]!['programming']!) {
+            eventScores[eventId]!['programming'] = score;
+          }
+        }
+      }
+
+      int maxCombined = 0;
+      for (var scores in eventScores.values) {
+        final combined = scores['driver']! + scores['programming']!;
+        if (combined > maxCombined) {
+          maxCombined = combined;
+        }
+      }
+
+      return maxCombined > 0 ? maxCombined : null;
+    } catch (e) {
+      debugPrint('Error fetching team best skills: $e');
       return null;
     }
   }

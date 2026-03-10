@@ -86,25 +86,28 @@ class Team {
     }
 
     if (statiq != null) {
-      // 2. Try statiq['trueskill']['pureScore']
-      if (teamwork == null && statiq['trueskill'] is Map) {
-        teamwork = statiq['trueskill']['pureScore'] as num?;
+      // 2. Try statiq['trueskill'] map
+      if (statiq['trueskill'] is Map) {
+        final tsMap = statiq['trueskill'] as Map;
+        // Preferred: ts_conservative / 3
+        if (tsMap.containsKey('ts_conservative')) {
+          teamwork = (tsMap['ts_conservative'] as num).toDouble() / 3.0;
+        } else {
+          // Fallback to pureScore or score
+          teamwork = tsMap['pureScore'] as num? ??
+              tsMap['score'] as num? ??
+              tsMap['mu'] as num?;
+        }
       }
 
       // 3. Try statiq['teamworkQuality'] (Standard Team Details API)
       teamwork ??= statiq['teamworkQuality'] as num?;
 
-      // 4. Fallbacks (Historic/Other endpoints) - raw values, no division
-      if (teamwork == null) {
-        if (statiq['trueskill'] is Map) {
-          teamwork = statiq['trueskill']['score'] as num? ??
-              statiq['trueskill']['mu'] as num?;
-        }
-        teamwork ??= statiq['statiqScore'] as num? ??
+      // 4. Fallbacks (Historic/Other endpoints)
+      teamwork ??= statiq['statiqScore'] as num? ??
             statiq['statiq_score'] as num? ??
             statiq['teamwork'] as num? ??
             statiq['performance'] as num?;
-      }
     }
 
     // 5. Final fallback – check for 'trueskill' or 'teamwork' at the top level

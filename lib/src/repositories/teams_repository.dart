@@ -72,4 +72,13 @@ class TeamsRepository {
   Future<List<Event>> getTeamEvents(int teamId, {int? seasonId}) async {
     return await _apiClient.getTeamEvents(teamId, seasonId: seasonId);
   }
+
+  Future<int?> getTeamWorldBestSkills(int teamId, int seasonId) async {
+    return await _apiClient.getTeamWorldBestSkills(teamId, seasonId);
+  }
+
+  Future<Map<String, dynamic>?> getTeamTrueSkillStats(
+      int teamId, int seasonId) async {
+    return await _apiClient.getTeamTrueSkillStats(teamId, seasonId);
+  }
 }
