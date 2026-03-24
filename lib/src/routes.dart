@@ -49,9 +49,11 @@ class AppRoutes {
         return CupertinoPageRoute(
             builder: (_) => TeamEventsScreen(team: team!));
       case matchDetail:
-        final match = routeSettings.arguments as MatchModel?;
+        final args = routeSettings.arguments as Map<String, dynamic>;
+        final match = args['match'] as MatchModel;
+        final event = args['event'] as Event;
         return CupertinoPageRoute(
-            builder: (_) => MatchDetailScreen(match: match!));
+            builder: (_) => MatchDetailScreen(match: match, event: event));
       case scoutingForm:
         // Pass arguments like eventId, matchId, teamId, or an existing entry
         final args = routeSettings.arguments as Map<String, dynamic>?;

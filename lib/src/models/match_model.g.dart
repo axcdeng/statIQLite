@@ -32,13 +32,15 @@ class MatchAdapter extends TypeAdapter<MatchModel> {
       blueScore: fields[10] as int?,
       winner: fields[11] as String?,
       divisionId: fields[14] as int?,
+      field: fields[15] as String?,
+      scored: fields[16] as bool?,
     );
   }
 
   @override
   void write(BinaryWriter writer, MatchModel obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -68,7 +70,11 @@ class MatchAdapter extends TypeAdapter<MatchModel> {
       ..writeByte(13)
       ..write(obj.blueAllianceTeamNums)
       ..writeByte(14)
-      ..write(obj.divisionId);
+      ..write(obj.divisionId)
+      ..writeByte(15)
+      ..write(obj.field)
+      ..writeByte(16)
+      ..write(obj.scored);
   }
 
   @override
@@ -103,8 +109,12 @@ Map<String, dynamic> _$MatchModelToJson(MatchModel instance) =>
       'redAllianceTeamNums': instance.redAllianceTeamNums,
       'blueAllianceTeamNums': instance.blueAllianceTeamNums,
       'divisionId': instance.divisionId,
+      'field': instance.field,
+      'scored': instance.scored,
       'safeScheduledTime': instance.safeScheduledTime.toIso8601String(),
+      'isScored': instance.isScored,
       'shortName': instance.shortName,
+      'longName': instance.longName,
       'isQualifier': instance.isQualifier,
       'isFinals': instance.isFinals,
     };

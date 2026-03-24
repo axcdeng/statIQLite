@@ -36,6 +36,10 @@ class MatchModel {
   final List<String> blueAllianceTeamNums;
   @HiveField(14)
   final int? divisionId;
+  @HiveField(15)
+  final String? field;
+  @HiveField(16)
+  final bool? scored;
 
   MatchModel({
     required this.id,
@@ -53,6 +57,8 @@ class MatchModel {
     this.blueScore,
     this.winner,
     this.divisionId,
+    this.field,
+    this.scored,
   });
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
@@ -123,17 +129,17 @@ class MatchModel {
               ? json['division']
               : (json['division'] as Map)['id'] as int)
           : null,
+      field: json['field'] as String?,
+      scored: json['scored'] as bool? ?? false,
     );
   }
 
   DateTime get safeScheduledTime => scheduledTime ?? DateTime(2099);
 
-  String get shortName {
-    // "TeamWork #33" -> "Q33"
-    // "Match #1-1" or "Final #1-1" -> "F 1"
-    // RobotEvents names are like "TeamWork #33", "Final #1-1"
+  bool get isScored =>
+      (scored == true) || (redScore != null || blueScore != null);
 
-    // Check for Qualification matches
+  String get shortName {
     if (name.contains('TeamWork') ||
         name.contains('Qualification') ||
         name.contains('Q')) {
@@ -141,27 +147,29 @@ class MatchModel {
       return 'Q$number';
     }
 
-    // Check for Finals
     if (name.contains('Final') ||
         name.contains('F') ||
         name.contains('Match #')) {
-      // Often "Match #1-1" in older events or "Final #1-1"
-      // User wants "F [match number]"? Or usually Finals are just "F 1", "F 2"...
-      // In VEX IQ, finals are just one round usually, match 1 to N.
-      // Let's grab the numbers.
-      // If "Match #1-1", maybe "F 1".
-      final parts = name.split('#');
-      if (parts.length > 1) {
-        // If it looks like "1-1", takes the last part? Or just the whole thing?
-        // User said: "#1-1 -> F 1".
-        // If it is 1-1, let's just take the first number if they are same?
-        // Actually typically "1-1" means Round 1 Match 1.
-        // Let's simplify to "F " + instance/matchnum.
+      return 'F $matchNum';
+    }
 
-        // Use the matchNum property if available and meaningful?
-        // matchNum is 1, 2, ...
-        return 'F $matchNum';
-      }
+    return name;
+  }
+
+  String get longName {
+    if (name.contains('TeamWork') ||
+        name.contains('Qualification') ||
+        name.contains('Q')) {
+      final number = name.split('#').last.trim();
+      return 'Qualification #$number';
+    }
+
+    if (name.contains('Final') ||
+        name.contains('F') ||
+        name.contains('Match #')) {
+      final parts = name.split('#').last.trim().split('-');
+      final number = parts.last;
+      return 'Final $number';
     }
 
     return name;

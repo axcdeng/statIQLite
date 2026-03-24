@@ -25,21 +25,21 @@ class AboutScreen extends StatelessWidget {
                 context,
                 title: 'Description',
                 content:
-                    'RoboScout IQ is a scouting and analytics app for the VEX IQ Robotics Competition.\n\nIt allows students, coaches, and parents to browse events, view rankings, analyze teams, and track competitions in real time.',
+                    'statIQ Lite is a scouting and analytics app for the VEX IQ Robotics Competition.\n\nIt allows students, coaches, and parents to browse events, view rankings, analyze teams, and track competitions in real time.',
               ),
 
               _buildInfoSection(
                 context,
                 title: 'Data Source Disclosure',
                 content:
-                    'Competition data is provided via the RobotEvents API and the RoboSTEM API.\n\nRoboScout IQ is an independent application and is not affiliated with or endorsed by VEX Robotics or the REC Foundation.',
+                    'Competition data is provided via the RobotEvents API and the RoboSTEM API.\n\nstatIQ Lite is an independent application and is not affiliated with or endorsed by VEX Robotics or the REC Foundation.',
               ),
 
               _buildInfoSection(
                 context,
                 title: 'Privacy Statement',
                 content:
-                    'RoboScout IQ does not collect personal data.\nAll saved favorites and preferences are stored locally on your device.',
+                    'statIQ Lite does not collect personal data.\nAll saved favorites and preferences are stored locally on your device.',
               ),
 
               // Privacy Policy Link

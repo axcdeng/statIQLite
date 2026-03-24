@@ -40,6 +40,6 @@ class ExportService {
     await file.writeAsString(csv);
 
     // ignore: deprecated_member_use
-    await Share.shareXFiles([XFile(file.path)], text: 'RoboScout IQ Export');
+    await Share.shareXFiles([XFile(file.path)], text: 'statIQ Lite Export');
   }
 }

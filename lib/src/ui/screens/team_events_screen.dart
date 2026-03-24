@@ -348,7 +348,9 @@ class _EventDetailsState extends ConsumerState<_EventDetails> {
               }
 
               return Column(
-                children: teamMatches.map((m) => MatchTile(match: m)).toList(),
+                children: teamMatches
+                    .map((m) => MatchTile(match: m, event: widget.event))
+                    .toList(),
               );
             },
           ),

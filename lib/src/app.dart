@@ -15,7 +15,7 @@ class RoboScoutIQApp extends ConsumerWidget {
 
     // Use themeMode from settings
     return MaterialApp(
-      title: 'RoboScout IQ',
+      title: 'statIQ Lite',
       themeMode: settings.themeMode,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

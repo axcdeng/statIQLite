@@ -116,7 +116,8 @@ class TeamAtEventScreen extends ConsumerWidget {
                       separatorBuilder: (context, index) =>
                           const Divider(height: 1),
                       itemBuilder: (context, index) {
-                        return MatchTile(match: teamMatches[index]);
+                        return MatchTile(
+                            match: teamMatches[index], event: event);
                       },
                     );
                   },

@@ -8,6 +8,7 @@ import 'package:roboscout_iq/src/models/event_model.dart';
 import 'package:roboscout_iq/src/models/match_model.dart';
 import 'package:roboscout_iq/src/models/team_model.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
+import 'package:roboscout_iq/src/routes.dart';
 import 'package:roboscout_iq/src/ui/screens/event_info_screen.dart';
 import 'package:roboscout_iq/src/ui/screens/team_at_event_screen.dart';
 import 'package:roboscout_iq/src/utils/country_utils.dart';
@@ -375,7 +376,9 @@ class _MatchesListState extends ConsumerState<_MatchesList> {
                 if (_qualsExpanded)
                   CupertinoListSection.insetGrouped(
                     margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    children: quals.map((m) => MatchTile(match: m)).toList(),
+                    children: quals
+                        .map((m) => MatchTile(match: m, event: widget.event))
+                        .toList(),
                   ),
               ],
               if (finals.isNotEmpty) ...[
@@ -387,7 +390,9 @@ class _MatchesListState extends ConsumerState<_MatchesList> {
                 if (_finalsExpanded)
                   CupertinoListSection.insetGrouped(
                     margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    children: finals.map((m) => MatchTile(match: m)).toList(),
+                    children: finals
+                        .map((m) => MatchTile(match: m, event: widget.event))
+                        .toList(),
                   ),
               ],
             ],
@@ -434,7 +439,8 @@ class _MatchesListState extends ConsumerState<_MatchesList> {
 
 class MatchTile extends StatelessWidget {
   final MatchModel match;
-  const MatchTile({super.key, required this.match});
+  final Event event;
+  const MatchTile({super.key, required this.match, required this.event});
 
   @override
   Widget build(BuildContext context) {
@@ -442,6 +448,9 @@ class MatchTile extends StatelessWidget {
     final bScore = match.blueScore ?? 0;
     final finalScore = (rScore > bScore) ? rScore : bScore;
     final isSplitScore = rScore != bScore;
+
+    final scoreText = match.isScored ? '$finalScore' : (match.field ?? '');
+    final isField = !match.isScored && match.field != null;
 
     final redTeams = match.redAllianceTeamNums.isNotEmpty
         ? match.redAllianceTeamNums
@@ -457,64 +466,89 @@ class MatchTile extends StatelessWidget {
       timeStr = DateFormat('h:mm a').format(match.scheduledTime!.toLocal());
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 50,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  match.shortName,
-                  style: TextStyle(
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).pushNamed(
+          AppRoutes.matchDetail,
+          arguments: {'match': match, 'event': event},
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        color: Colors.transparent,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 50,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    match.shortName,
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
-                      color: CupertinoColors.label.resolveFrom(context)),
-                ),
-                if (timeStr != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2.0),
-                    child: Text(
-                      timeStr,
-                      style: const TextStyle(
-                          fontSize: 10,
-                          color: CupertinoColors.systemGrey,
-                          fontWeight: FontWeight.w500),
+                      color: CupertinoColors.label.resolveFrom(context),
                     ),
                   ),
-              ],
+                  if (timeStr != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2.0),
+                      child: Text(
+                        timeStr,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: CupertinoColors.systemGrey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
                     child: _buildAllianceColumn(
-                        redTeams,
-                        CupertinoColors.systemRed,
-                        isSplitScore && rScore < bScore)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Text(
-                    '$finalScore',
-                    style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.5),
+                      redTeams,
+                      CupertinoColors.systemRed,
+                      isSplitScore && rScore < bScore,
+                    ),
                   ),
-                ),
-                Expanded(
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: SizedBox(
+                      width: 60,
+                      child: Text(
+                        scoreText,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: isField ? 12 : 22,
+                          fontWeight:
+                              isField ? FontWeight.w600 : FontWeight.bold,
+                          letterSpacing: isField ? 0 : -0.5,
+                          color: isField
+                              ? CupertinoColors.secondaryLabel
+                                  .resolveFrom(context)
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
                     child: _buildAllianceColumn(
-                        blueTeams,
-                        CupertinoColors.systemBlue,
-                        isSplitScore && bScore < rScore)),
-              ],
+                      blueTeams,
+                      CupertinoColors.systemBlue,
+                      isSplitScore && bScore < rScore,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -525,17 +559,25 @@ class MatchTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         for (var team in teams)
-          Text(team,
-              style: TextStyle(
-                  color: color, fontWeight: FontWeight.bold, fontSize: 15)),
+          Text(
+            team,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
         if (isDq)
           const Padding(
             padding: EdgeInsets.only(top: 2.0),
-            child: Text('⚠️ DQ',
-                style: TextStyle(
-                    fontSize: 10,
-                    color: CupertinoColors.systemOrange,
-                    fontWeight: FontWeight.bold)),
+            child: Text(
+              '⚠️ DQ',
+              style: TextStyle(
+                fontSize: 10,
+                color: CupertinoColors.systemOrange,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
       ],
     );
@@ -556,6 +598,15 @@ class _RankingsList extends ConsumerStatefulWidget {
 class _RankingsListState extends ConsumerState<_RankingsList> {
   int _selectedSubTab = 0; // 0 for Rankings, 1 for Finals
   int _refreshKey = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Trigger match fetch for instant detection
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(matchesRepositoryProvider).fetchMatches(widget.event.id);
+    });
+  }
 
   Future<void> _handleRefresh() async {
     ref.read(eventsRepositoryProvider).clearRankingsCache(widget.event.id);
@@ -636,20 +687,15 @@ class _RankingsListState extends ConsumerState<_RankingsList> {
                 });
 
                 // Pre-fetch matches if we are in finals to find scores
-                return FutureBuilder<List<MatchModel>>(
-                  future: isFinals
-                      ? () async {
-                          final matchesRepo =
-                              ref.read(matchesRepositoryProvider);
-                          await matchesRepo.fetchMatches(widget.event.id);
-                          return matchesRepo
-                              .getMatchesForEvent(widget.event.id)
-                              .where((m) => m.isFinals)
-                              .toList();
-                        }()
-                      : Future.value([]),
-                  builder: (context, matchSnapshot) {
-                    final finalsMatches = matchSnapshot.data ?? [];
+                return ValueListenableBuilder<Box<MatchModel>>(
+                  valueListenable:
+                      ref.read(matchesRepositoryProvider).watchMatches(),
+                  builder: (context, box, _) {
+                    final allMatches = ref
+                        .read(matchesRepositoryProvider)
+                        .getMatchesForEvent(widget.event.id);
+                    final finalsMatches =
+                        allMatches.where((m) => m.isFinals).toList();
 
                     final List<Widget> listItems = [];
 
@@ -685,9 +731,8 @@ class _RankingsListState extends ConsumerState<_RankingsList> {
                             // Check if this match contains all teams in this alliance
                             if (teamNums.every((n) => matchTeams.contains(n))) {
                               foundMatch = m;
-                              if (score == null || score == 0) {
-                                score = m.redScore ?? m.blueScore;
-                              }
+                              // Always use match score for finals if available
+                              score = m.redScore ?? m.blueScore;
                               break;
                             }
                           }
@@ -739,7 +784,17 @@ class _RankingsListState extends ConsumerState<_RankingsList> {
                                   color: primaryColor)),
                           trailing: const CupertinoListTileChevron(),
                           onTap: () {
-                            // Navigate to the first team for now
+                            if (foundMatch != null) {
+                              Navigator.of(context).pushNamed(
+                                AppRoutes.matchDetail,
+                                arguments: {
+                                  'match': foundMatch,
+                                  'event': widget.event
+                                },
+                              );
+                              return;
+                            }
+                            // Navigate to the first team if no match found
                             final teamMap = orderedTeams.first['team']
                                 as Map<String, dynamic>;
                             final teamNum = teamMap['name'] ?? '?';

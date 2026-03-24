@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String appName = 'RoboScout IQ';
+  static const String appName = 'statIQ Lite';
 
   // Secure Storage Keys
   static const String robotEventsApiKeyKey = 'robot_events_api_key';
