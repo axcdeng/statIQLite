@@ -408,7 +408,7 @@ class _RuleCardState extends State<_RuleCard> {
                   child: Icon(
                     CupertinoIcons.globe,
                     size: 20,
-                    color: CupertinoColors.activeBlue.resolveFrom(context),
+                    color: widget.primaryColor,
                   ),
                 ),
               ],

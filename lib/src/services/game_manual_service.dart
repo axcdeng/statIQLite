@@ -13,6 +13,7 @@ class GameManualService {
   static const String _kLastUpdateKey = 'rules_last_update_v2';
   static const String _kManualUrl =
       'https://www.vexrobotics.com/mix-and-match-manual';
+  static final RegExp _kRuleIdPattern = RegExp(r'^<([A-Z]+)\d+>$');
 
   GameManualService(this._dio, this._cache);
 
@@ -27,7 +28,7 @@ class GameManualService {
     if (cachedData == null) {
       debugPrint('No cached rules found. Loading from assets...');
       try {
-        final initialRules = await _loadFromAssets();
+        final initialRules = _sanitizeRules(await _loadFromAssets());
         await _saveToCache(initialRules);
         return initialRules;
       } catch (e) {
@@ -49,7 +50,17 @@ class GameManualService {
 
     if (cachedData != null) {
       final List<dynamic> jsonList = jsonDecode(cachedData);
-      return jsonList.map((j) => GameRule.fromJson(j)).toList();
+      final cachedRules = jsonList
+          .map((j) => GameRule.fromJson((j as Map).cast<String, dynamic>()))
+          .toList();
+      final sanitizedRules = _sanitizeRules(cachedRules);
+
+      // Self-heal stale cache entries (e.g., malformed "rules" from bad parse).
+      if (!listEquals(cachedRules, sanitizedRules)) {
+        await _saveToCache(sanitizedRules);
+      }
+
+      return sanitizedRules;
     }
 
     return [];
@@ -61,16 +72,18 @@ class GameManualService {
     final List<dynamic> jsonList = jsonDecode(content);
 
     return jsonList.map((j) {
+      final map = (j as Map).cast<String, dynamic>();
+
       // If the JSON is already in the correct format (e.g. from cache but somehow loaded here), handle it gracefully.
-      if (j.containsKey('body') && j.containsKey('section')) {
-        return GameRule.fromJson(j as Map<String, dynamic>);
+      if (map.containsKey('body') && map.containsKey('section')) {
+        return GameRule.fromJson(map);
       }
 
       // Read from Python script's generated format
-      final id = j['id'] as String? ?? '';
-      final title = j['title'] as String? ?? '';
-      final body = j['description'] as String? ?? '';
-      final type = j['type'] as String? ?? 'rule';
+      final id = map['id'] as String? ?? '';
+      final title = map['title'] as String? ?? '';
+      final body = map['description'] as String? ?? '';
+      final type = map['type'] as String? ?? 'rule';
 
       String section = 'G';
       final match = RegExp(r'^<([A-Z]+)\d+>$').firstMatch(id);
@@ -109,7 +122,7 @@ class GameManualService {
 
     if (response.statusCode == 200) {
       final String html = response.data.toString();
-      final rules = _parseManualHtml(html);
+      final rules = _sanitizeRules(_parseManualHtml(html));
       if (rules.isNotEmpty) {
         await _saveToCache(rules);
         return rules;
@@ -125,6 +138,40 @@ class GameManualService {
     // we should return an empty list to fallback to cache.
     // TODO: Implement regex-based parsing from the HTML if possible.
     return [];
+  }
+
+  List<GameRule> _sanitizeRules(List<GameRule> rules) {
+    final seenIds = <String>{};
+    final cleaned = <GameRule>[];
+
+    for (final rule in rules) {
+      final id = rule.id.trim();
+      final section = _sectionFromRuleId(id);
+      final title = rule.title.trim();
+      final body = rule.body.trim();
+
+      if (section == null || title.isEmpty || body.isEmpty) {
+        continue;
+      }
+
+      if (!seenIds.add(id)) {
+        continue;
+      }
+
+      cleaned.add(rule.copyWith(
+        id: id,
+        section: section,
+        title: title,
+        body: body,
+      ));
+    }
+
+    return cleaned;
+  }
+
+  String? _sectionFromRuleId(String id) {
+    final match = _kRuleIdPattern.firstMatch(id);
+    return match?.group(1);
   }
 
   // ignore: unused_element
