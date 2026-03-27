@@ -27,10 +27,11 @@ class AppConstants {
   // This is critical to filter out events from previous years with same dates.
   static const int currentSeasonId = 196;
 
-  // RoboStem API (for World Skills)
-  static const String roboStemBaseUrl = 'https://api.robostem-api.org';
-  static const String roboStemApiKey =
-      '6ab1d415d0447945ff6e989a081fba659b7f2eb34ab3a2a07451a365aa6114f7';
+  // RoboStem API v3 (for SuperScore)
+  static const String roboStemBaseUrl = 'https://robostem-api.org';
+  // static const String roboStemApiKey =
+  //     '6ab1d415d0447945ff6e989a081fba659b7f2eb34ab3a2a07451a365aa6114f7';
+  static const String roboStemApiKey = 'rse_d0b4a9abddfa4730b54192e5bb29a456';
 
   // Common VEX IQ countries for autofill
   static const List<String> vexIqCountries = [

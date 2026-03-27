@@ -26,7 +26,7 @@ class TeamAdapter extends TypeAdapter<Team> {
       eventId: fields[6] as int,
       organization: fields[7] as String?,
       location: fields[8] as String?,
-      trueskill: fields[9] as double?,
+      superscore: fields[9] as double?,
       ccwm: fields[10] as double?,
       statiq: (fields[11] as Map?)?.cast<dynamic, dynamic>(),
       grade: fields[12] as String?,
@@ -56,7 +56,7 @@ class TeamAdapter extends TypeAdapter<Team> {
       ..writeByte(8)
       ..write(obj.location)
       ..writeByte(9)
-      ..write(obj.trueskill)
+      ..write(obj.superscore)
       ..writeByte(10)
       ..write(obj.ccwm)
       ..writeByte(11)
@@ -90,8 +90,9 @@ Map<String, dynamic> _$TeamToJson(Team instance) => <String, dynamic>{
       'eventId': instance.eventId,
       'organization': instance.organization,
       'location': instance.location,
-      'trueskill': instance.trueskill,
+      'superscore': instance.superscore,
       'ccwm': instance.ccwm,
       'statiq': instance.statiq,
       'grade': instance.grade,
+      'scaledSuperscore': instance.scaledSuperscore,
     };

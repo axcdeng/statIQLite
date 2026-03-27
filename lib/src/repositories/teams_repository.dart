@@ -77,8 +77,8 @@ class TeamsRepository {
     return await _apiClient.getTeamWorldBestSkills(teamId, seasonId);
   }
 
-  Future<Map<String, dynamic>?> getTeamTrueSkillStats(
+  Future<Map<String, dynamic>?> getTeamSuperscoreStats(
       int teamId, int seasonId) async {
-    return await _apiClient.getTeamTrueSkillStats(teamId, seasonId);
+    return await _apiClient.getTeamSuperscoreStats(teamId, seasonId);
   }
 }

@@ -21,13 +21,6 @@ class LeaderboardRepository {
   final Set<String> _activeFetches = {};
 
   // ---------------------------------------------------------------------------
-  // Global TrueSkill rank memory cache (Number → worldRank)
-  // Used to inject global rank when a country filter is active.
-  // ---------------------------------------------------------------------------
-  Map<String, int> _globalRankCache = {};
-  DateTime? _lastGlobalCacheFetch;
-
-  // ---------------------------------------------------------------------------
   // Hive helpers
   // ---------------------------------------------------------------------------
 
@@ -114,40 +107,17 @@ class LeaderboardRepository {
   }
 
   // ---------------------------------------------------------------------------
-  // Global TrueSkill Rankings
+  // Global SuperScore Rankings
   // ---------------------------------------------------------------------------
 
-  Future<void> _ensureGlobalRankCache() async {
-    if (_globalRankCache.isEmpty ||
-        _lastGlobalCacheFetch == null ||
-        DateTime.now().difference(_lastGlobalCacheFetch!) >
-            const Duration(hours: 1)) {
-      try {
-        final globalTeams =
-            await _apiClient.getGlobalTrueSkillRankings(limit: 500);
-        _globalRankCache = {
-          for (var team in globalTeams) team.number: team.worldRank ?? 0
-        };
-        _lastGlobalCacheFetch = DateTime.now();
-      } catch (e) {
-        debugPrint('LeaderboardRepo: global rank cache refresh failed: $e');
-      }
-    }
-  }
-
-  Future<List<Team>> getGlobalTrueSkillRankings(
-      {String? country, bool forceRefresh = false}) async {
-    // v2 prefix matches the versioned cache scheme applied to skills_v2_*.
-    final cacheKey = 'trueskill_v2_pure_global_${country ?? ""}';
+  Future<List<Team>> getGlobalSuperscoreRankings(
+      {bool forceRefresh = false}) async {
+    const cacheKey = 'superscore_v3_global';
 
     // 1. Serve from cache if valid.
     if (!forceRefresh) {
       final cached = _readCache(cacheKey);
-      if (cached != null) {
-        final teams = _deserializeTeams(cached);
-        await _ensureGlobalRankCache();
-        return _injectGlobalRanks(teams);
-      }
+      if (cached != null) return _deserializeTeams(cached);
     }
 
     // 2. Gate concurrent fetches.
@@ -159,16 +129,10 @@ class LeaderboardRepository {
     _activeFetches.add(cacheKey);
 
     try {
-      if (country != null) await _ensureGlobalRankCache();
-
-      final teams = await _apiClient.getGlobalTrueSkillRankings(
-        country: country,
-      );
-
-      final enriched = _injectGlobalRanks(teams);
-      final jsonList = enriched.map((t) => t.toJson()).toList();
+      final teams = await _apiClient.getGlobalSuperscoreRankings();
+      final jsonList = teams.map((t) => t.toJson()).toList();
       await _writeCache(cacheKey, jsonList);
-      return enriched;
+      return teams;
     } catch (e) {
       // On failure return stale cache regardless of TTL.
       try {
@@ -179,23 +143,6 @@ class LeaderboardRepository {
     } finally {
       _activeFetches.remove(cacheKey);
     }
-  }
-
-  Future<int?> getTrueSkillRankForTeam(String teamNumber) async {
-    await _ensureGlobalRankCache();
-    return _globalRankCache[teamNumber];
-  }
-
-  // ---------------------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------------------
-
-  List<Team> _injectGlobalRanks(List<Team> teams) {
-    if (_globalRankCache.isEmpty) return teams;
-    return teams.map((t) {
-      final globalRank = _globalRankCache[t.number];
-      return globalRank != null ? t.copyWith(worldRank: globalRank) : t;
-    }).toList();
   }
 
   List<Team> _deserializeTeams(List<dynamic> list) {

@@ -25,7 +25,7 @@ class Team {
   @HiveField(8)
   final String? location;
   @HiveField(9)
-  final double? trueskill;
+  final double? superscore;
   @HiveField(10)
   final double? ccwm;
   @HiveField(11)
@@ -43,11 +43,14 @@ class Team {
     required this.eventId,
     this.organization,
     this.location,
-    this.trueskill,
+    this.superscore,
     this.ccwm,
     this.statiq,
     this.grade,
   });
+
+  double? get scaledSuperscore =>
+      superscore == null ? null : superscore! * 17.0;
 
   factory Team.fromJson(Map<String, dynamic> json) {
     dynamic loc = json['location'];
@@ -77,42 +80,19 @@ class Team {
     final statiq =
         statiqRaw is Map ? Map<String, dynamic>.from(statiqRaw) : null;
 
-    // Robustly extract TrueSkill (Pure Score)
-    num? teamwork;
+    num? superscoreValue;
 
-    // 1. Try properties injected by ApiClient from Pure Endpoint
-    if (json['trueskill_data'] is Map) {
-      teamwork = json['trueskill_data']['pureScore'] as num?;
+    if (json['superscore_data'] is Map) {
+      final superscoreData = json['superscore_data'] as Map;
+      superscoreValue = superscoreData['score'] as num? ??
+          superscoreData['superscore'] as num?;
     }
+
+    superscoreValue ??= json['superscore'] as num?;
 
     if (statiq != null) {
-      // 2. Try statiq['trueskill'] map
-      if (statiq['trueskill'] is Map) {
-        final tsMap = statiq['trueskill'] as Map;
-        // Preferred: ts_conservative / 3
-        if (tsMap.containsKey('ts_conservative')) {
-          teamwork = (tsMap['ts_conservative'] as num).toDouble() / 3.0;
-        } else {
-          // Fallback to pureScore or score
-          teamwork = tsMap['pureScore'] as num? ??
-              tsMap['score'] as num? ??
-              tsMap['mu'] as num?;
-        }
-      }
-
-      // 3. Try statiq['teamworkQuality'] (Standard Team Details API)
-      teamwork ??= statiq['teamworkQuality'] as num?;
-
-      // 4. Fallbacks (Historic/Other endpoints)
-      teamwork ??= statiq['statiqScore'] as num? ??
-            statiq['statiq_score'] as num? ??
-            statiq['teamwork'] as num? ??
-            statiq['performance'] as num?;
+      superscoreValue ??= statiq['superscore'] as num?;
     }
-
-    // 5. Final fallback – check for 'trueskill' or 'teamwork' at the top level
-    // (Crucial for deserializing from Hive where it was saved via toJson())
-    teamwork ??= json['trueskill'] as num? ?? json['teamwork'] as num?;
 
     // Extract skills if they are nested in statiq or at the top level
     Map<String, dynamic>? skills;
@@ -168,7 +148,7 @@ class Team {
           json['globalRank'] as int?,
       eventId: 0,
       location: locationStr,
-      trueskill: teamwork?.toDouble(),
+      superscore: superscoreValue?.toDouble(),
       statiq: statiq,
       grade: json['grade'] as String? ??
           json['gradeLevel'] as String? ??
@@ -186,7 +166,7 @@ class Team {
     int? eventId,
     String? organization,
     String? location,
-    double? trueskill,
+    double? superscore,
     double? ccwm,
     Map? statiq,
     String? grade,
@@ -201,7 +181,7 @@ class Team {
       eventId: eventId ?? this.eventId,
       organization: organization ?? this.organization,
       location: location ?? this.location,
-      trueskill: trueskill ?? this.trueskill,
+      superscore: superscore ?? this.superscore,
       ccwm: ccwm ?? this.ccwm,
       statiq: statiq ?? this.statiq,
       grade: grade ?? this.grade,

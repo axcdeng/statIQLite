@@ -11,7 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roboscout_iq/src/models/game_rule.dart';
 import 'package:roboscout_iq/src/state/providers.dart';
 
-/// All sections in the game manual, in order of appearance.
+/// Section order used by the manual tab chips and the "All" view.
 const List<String> kManualSections = [
   'G',
   'GG',
@@ -34,6 +34,17 @@ const Map<String, String> kSectionNames = {
   'T': 'Tournament',
 };
 
+const Map<String, int> _kManualSectionOrder = {
+  'G': 0,
+  'GG': 1,
+  'SG': 2,
+  'SC': 3,
+  'R': 4,
+  'RSC': 5,
+  'T': 6,
+  'S': 7,
+};
+
 class GameManualTab extends ConsumerStatefulWidget {
   const GameManualTab({super.key});
 
@@ -44,6 +55,7 @@ class GameManualTab extends ConsumerStatefulWidget {
 class _GameManualTabState extends ConsumerState<GameManualTab> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final Set<String> _collapsedSections = <String>{};
   String? _activeSection;
   String _searchQuery = '';
 
@@ -64,7 +76,33 @@ class _GameManualTabState extends ConsumerState<GameManualTab> {
       }).toList();
     }
 
+    rules.sort(_compareRules);
+
     return rules;
+  }
+
+  int _compareRules(GameRule a, GameRule b) {
+    final sectionA = _kManualSectionOrder[a.section] ?? 999;
+    final sectionB = _kManualSectionOrder[b.section] ?? 999;
+    if (sectionA != sectionB) return sectionA.compareTo(sectionB);
+
+    final numberA = int.tryParse(a.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 999;
+    final numberB = int.tryParse(b.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 999;
+    if (numberA != numberB) return numberA.compareTo(numberB);
+
+    return a.id.compareTo(b.id);
+  }
+
+  List<MapEntry<String, List<GameRule>>> _groupRulesBySection(
+      List<GameRule> rules) {
+    final grouped = <String, List<GameRule>>{};
+    for (final rule in rules) {
+      grouped.putIfAbsent(rule.section, () => <GameRule>[]).add(rule);
+    }
+
+    return grouped.entries.toList()
+      ..sort((a, b) => (_kManualSectionOrder[a.key] ?? 999)
+          .compareTo(_kManualSectionOrder[b.key] ?? 999));
   }
 
   @override
@@ -103,6 +141,7 @@ class _GameManualTabState extends ConsumerState<GameManualTab> {
   Widget _buildContent(
       BuildContext context, List<GameRule> allRules, Color primaryColor) {
     final filtered = _filterRules(allRules);
+    final groupedRules = _groupRulesBySection(filtered);
 
     return Column(
       children: [
@@ -186,18 +225,31 @@ class _GameManualTabState extends ConsumerState<GameManualTab> {
               : ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  itemCount: filtered.length,
+                  itemCount: groupedRules.length,
                   itemBuilder: (context, index) {
-                    final rule = filtered[index];
-                    final isFirstOfSection = index == 0 ||
-                        filtered[index - 1].section != rule.section;
+                    final section = groupedRules[index].key;
+                    final sectionRules = groupedRules[index].value;
+                    final isCollapsible = _activeSection == null;
+                    final isCollapsed =
+                        isCollapsible && _collapsedSections.contains(section);
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (isFirstOfSection) ...[
-                          if (index > 0) const SizedBox(height: 20),
-                          Container(
+                        if (index > 0) const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: isCollapsible
+                              ? () {
+                                  setState(() {
+                                    if (isCollapsed) {
+                                      _collapsedSections.remove(section);
+                                    } else {
+                                      _collapsedSections.add(section);
+                                    }
+                                  });
+                                }
+                              : null,
+                          child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 10),
@@ -211,7 +263,7 @@ class _GameManualTabState extends ConsumerState<GameManualTab> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              '${kSectionNames[rule.section]} (${rule.section})',
+                              '${kSectionNames[section]} ($section)',
                               style: TextStyle(
                                 color: primaryColor,
                                 fontWeight: FontWeight.w800,
@@ -220,10 +272,23 @@ class _GameManualTabState extends ConsumerState<GameManualTab> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 10),
+                        ),
+                        const SizedBox(height: 10),
+                        if (isCollapsed) ...[
+                          ...sectionRules.map(
+                            (rule) => Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: _buildCompactRuleCard(rule, primaryColor),
+                            ),
+                          ),
+                        ] else ...[
+                          ...sectionRules.map(
+                            (rule) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: _buildRuleCard(rule, primaryColor),
+                            ),
+                          ),
                         ],
-                        _buildRuleCard(rule, primaryColor),
-                        const SizedBox(height: 8),
                       ],
                     );
                   },
@@ -315,13 +380,57 @@ class _GameManualTabState extends ConsumerState<GameManualTab> {
         _searchController.text = tag;
         setState(() => _searchQuery = tag);
       },
-      onOpenWebsite: (ruleId) => _openWebsite(ruleId),
+      onOpenWebsite: _openWebsite,
     );
   }
 
-  Future<void> _openWebsite(String ruleId) async {
-    final url = Uri.parse(
-        'https://www.vexrobotics.com/mix-and-match-manual#${ruleId.toLowerCase()}');
+  Widget _buildCompactRuleCard(GameRule rule, Color primaryColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: CupertinoColors.secondarySystemGroupedBackground
+            .resolveFrom(context),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            rule.id,
+            style: TextStyle(
+              color: primaryColor,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              rule.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: CupertinoColors.label.resolveFrom(context),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openWebsite(GameRule rule) async {
+    final manualService = ref.read(gameManualServiceProvider);
+    final url = rule.page != null
+        ? Uri.parse(manualService.manualPdfUrlForPage(rule.page!))
+        : Uri.parse(
+            'https://www.vexrobotics.com/mix-and-match-manual#:~:text=${Uri.encodeComponent('${rule.id} ${rule.title}')}',
+          );
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
@@ -334,7 +443,7 @@ class _RuleCard extends StatefulWidget {
   final GameRule rule;
   final Color primaryColor;
   final Function(String)? onTagTap;
-  final Function(String)? onOpenWebsite;
+  final Function(GameRule)? onOpenWebsite;
 
   const _RuleCard({
     required this.rule,
@@ -400,11 +509,7 @@ class _RuleCardState extends State<_RuleCard> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () {
-                    final ruleId =
-                        widget.rule.id.replaceAll(RegExp(r'[<>]'), '');
-                    widget.onOpenWebsite?.call(ruleId);
-                  },
+                  onTap: () => widget.onOpenWebsite?.call(widget.rule),
                   child: Icon(
                     CupertinoIcons.globe,
                     size: 20,

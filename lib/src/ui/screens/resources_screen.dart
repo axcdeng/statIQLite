@@ -15,13 +15,13 @@ class ResourcesScreen extends ConsumerStatefulWidget {
 }
 
 class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
-  static const _tabLabels = ['Manual', 'Calculator', 'Field', 'Timer'];
+  static const _tabLabels = ['Timer', 'Calculator', 'Field', 'Manual'];
 
   List<Widget> _getTabs(int selectedTab) => [
-        const GameManualTab(),
+        MatchTimerTab(isActive: selectedTab == 0),
         const ScoreCalculatorTab(),
         const FieldSetupTab(),
-        MatchTimerTab(isActive: selectedTab == 3),
+        const GameManualTab(),
       ];
 
   @override

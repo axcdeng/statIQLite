@@ -32,12 +32,12 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
   // Lazy Loaded Stats
   bool _worldRankIsLoading = false;
   bool _worldScoreIsLoading = false;
-  bool _trueSkillIsLoading = false;
+  bool _superScoreIsLoading = false;
 
   int? _worldSkillsRank;
   int? _worldBestScore;
-  int? _trueSkillRank;
-  double? _trueSkillRating;
+  int? _superScoreRank;
+  double? _superScoreRating;
 
   @override
   void dispose() {
@@ -59,11 +59,11 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
 
       _worldRankIsLoading = false;
       _worldScoreIsLoading = false;
-      _trueSkillIsLoading = false;
+      _superScoreIsLoading = false;
       _worldSkillsRank = null;
       _worldBestScore = null;
-      _trueSkillRank = null;
-      _trueSkillRating = null;
+      _superScoreRank = null;
+      _superScoreRating = null;
     });
 
     try {
@@ -92,7 +92,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
           // Start lazy loading individual stats
           _worldRankIsLoading = true;
           _worldScoreIsLoading = true;
-          _trueSkillIsLoading = true;
+          _superScoreIsLoading = true;
         });
 
         // Add to history
@@ -124,31 +124,24 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
           if (mounted) setState(() => _worldScoreIsLoading = false);
         });
 
-        // 4. Fetch TrueSkill Stats from RoboStem and Leaderboard
+        // 4. Fetch SuperScore stats from RoboStem v3.
         try {
           final stats = await ref
               .read(teamsRepositoryProvider)
-              .getTeamTrueSkillStats(team.id, AppConstants.currentSeasonId);
-          final trueSkRank = await ref
-              .read(leaderboardRepositoryProvider)
-              .getTrueSkillRankForTeam(team.number);
+              .getTeamSuperscoreStats(team.id, AppConstants.currentSeasonId);
 
           if (mounted) {
             setState(() {
               if (stats != null) {
-                // Override the rank from the Generic Stats API (which is EPA rank)
-                // with the actual TrueSkill rank from the leaderboard.
-                _trueSkillRank = trueSkRank ?? stats['rank'];
-                _trueSkillRating =
-                    (stats['ts_conservative'] as num?)?.toDouble() != null
-                        ? (stats['ts_conservative'] as num).toDouble() / 3.0
-                        : null;
+                _superScoreRank = stats['rank'] as int?;
+                _superScoreRating =
+                    (stats['scaledSuperscore'] as num?)?.toDouble();
               }
-              _trueSkillIsLoading = false;
+              _superScoreIsLoading = false;
             });
           }
         } catch (e) {
-          if (mounted) setState(() => _trueSkillIsLoading = false);
+          if (mounted) setState(() => _superScoreIsLoading = false);
         }
       }
     } catch (e) {
@@ -484,15 +477,15 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
                     ? 'Loading...'
                     : (_worldBestScore?.toString() ?? 'N/A')),
             _buildInfoRow(
-                'TrueSkill Ranking',
-                _trueSkillIsLoading
+                'SuperScore Ranking',
+                _superScoreIsLoading
                     ? 'Loading...'
-                    : (_trueSkillRank?.toString() ?? 'N/A')),
+                    : (_superScoreRank?.toString() ?? 'N/A')),
             _buildInfoRow(
-                'TrueSkill Rating',
-                _trueSkillIsLoading
+                'SuperScore',
+                _superScoreIsLoading
                     ? 'Loading...'
-                    : (_trueSkillRating?.toStringAsFixed(2) ?? 'N/A')),
+                    : (_superScoreRating?.toStringAsFixed(2) ?? 'N/A')),
           ],
         ),
         const SizedBox(height: 12),

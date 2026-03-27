@@ -112,10 +112,10 @@ class _MatchTimerTabState extends ConsumerState<MatchTimerTab>
             final mainIndex = ref.read(bottomNavIndexProvider);
             final resourcesTab = ref.read(resourcesTabProvider);
             final route = ModalRoute.of(context);
-            // Only toggle if we are on the Resources tab (index 3) AND the Timer sub-tab (index 3)
+            // Only toggle if we are on the Resources tab (index 3) AND the Timer sub-tab (index 0)
             // AND the screen is actually currently visible.
             if (mainIndex == 3 &&
-                resourcesTab == 3 &&
+                resourcesTab == 0 &&
                 route != null &&
                 route.isCurrent) {
               _toggleFullscreen();

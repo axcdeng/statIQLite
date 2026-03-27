@@ -315,14 +315,13 @@ class ApiClient {
     return num.tryParse(v.toString());
   }
 
-  Future<List<Team>> getGlobalTrueSkillRankings(
+  Future<List<Team>> getGlobalSuperscoreRankings(
       {String? country, int limit = 100}) async {
-    // RoboStem API uses a different base URL and key
     final token = _settings.roboStemApiKey ?? AppConstants.roboStemApiKey;
     final dio = Dio(BaseOptions(
-      baseUrl: AppConstants.roboStemBaseUrl, // https://api.robostem-api.org
+      baseUrl: AppConstants.roboStemBaseUrl,
       headers: {
-        'x-api-key': token,
+        'X-API-Key': token,
         'accept': 'application/json',
       },
       connectTimeout: const Duration(seconds: 30),
@@ -330,20 +329,17 @@ class ApiClient {
     ));
 
     try {
-      // New endpoint: /leaderboards/viqrc/trueskill-only
-      // basis=conservative => sorts by ts_conservative (default)
-      // Response is a flat LeaderboardRow — no nested team/trueskill objects.
       final queryParams = <String, dynamic>{
-        'basis': 'conservative',
+        'sort': 'superscore',
         'per_page': limit,
-        'season_id': AppConstants.currentSeasonId,
+        'season[]': [AppConstants.currentSeasonId],
       };
 
       debugPrint(
-          'DEBUG calling RoboStem: /leaderboards/viqrc/trueskill-only with params: $queryParams');
+          'DEBUG calling RoboStem: /api/v3/superscore/rankings/viqrc with params: $queryParams');
 
       final response = await dio.get(
-        '/leaderboards/viqrc/trueskill-only',
+        '/api/v3/superscore/rankings/viqrc',
         queryParameters: queryParams,
       );
 
@@ -354,40 +350,24 @@ class ApiClient {
         rawList = (response.data as List).cast<Map<String, dynamic>>();
       }
 
-      // Each item is a flat LeaderboardRow:
-      //   rank, team_id, team_number, team_name, value, season_id, metric,
-      //   ts_conservative, ts_mu, ts_sigma, ts_conservative_sk, … (nullable)
       return rawList.map((json) {
-        // Build a Team-compatible map from the flat LeaderboardRow fields.
+        final team = json['team'] as Map<String, dynamic>? ?? const {};
+        final parsedRank = json['rank'] is String
+            ? int.tryParse(json['rank'] as String)
+            : (json['rank'] as num?)?.toInt();
         final teamMap = <String, dynamic>{
-          'id': json['team_id'],
-          'number': json['team_number'],
-          'team_name': json['team_name'],
-          // Carry rank as worldRank so existing leaderboard UI works.
-          'worldRank': json['rank'] is String
-              ? int.tryParse(json['rank'] as String)
-              : json['rank'] as int?,
-          'trueskill_data': {
-            'pureScore': (json['value'] as num? ?? 0) / 3,
-          },
-          // Expose key TrueSkill fields inside a statiq sub-map so Team.fromJson
-          // can pick them up the same way it always has.
-          'statiq': {
-            'trueskill_conservative': json['value'],
-            'ts_conservative': json['ts_conservative'] ?? json['value'],
-            'ts_mu': json['ts_mu'],
-            'ts_sigma': json['ts_sigma'],
-            'ts_conservative_sk': json['ts_conservative_sk'],
-            'ts_mu_dr': json['ts_mu_dr'],
-            'ts_sigma_dr': json['ts_sigma_dr'],
-            'ts_mu_pr': json['ts_mu_pr'],
-            'ts_sigma_pr': json['ts_sigma_pr'],
-          },
+          'id': team['id'],
+          'number': team['number'],
+          'name': team['name'],
+          'worldRank': parsedRank,
+          'rank': parsedRank,
+          'superscore': _parseNum(json['superscore']),
+          'location': json['region'],
         };
         return Team.fromJson(teamMap);
       }).toList();
     } catch (e) {
-      debugPrint('Error fetching TrueSkill rankings: $e');
+      debugPrint('Error fetching SuperScore rankings: $e');
       return [];
     }
   }
@@ -426,39 +406,47 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>?> getTeamTrueSkillStats(
+  Future<Map<String, dynamic>?> getTeamSuperscoreStats(
       int teamId, int seasonId) async {
     try {
       final token = _settings.roboStemApiKey ?? AppConstants.roboStemApiKey;
       final dio = Dio(BaseOptions(
         baseUrl: AppConstants.roboStemBaseUrl,
         headers: {
-          'x-api-key': token,
+          'X-API-Key': token,
           'accept': 'application/json',
         },
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
       ));
 
-      final response = await dio.get('/api/teams/$teamId/stats',
-          queryParameters: {'season_id': seasonId});
+      final response = await dio.get(
+        '/api/v3/superscore/rankings/viqrc',
+        queryParameters: {
+          'sort': 'superscore',
+          'season[]': [seasonId],
+          'team[]': [teamId],
+          'per_page': 1,
+        },
+      );
 
-      if (response.data is Map &&
-          response.data['data'] != null &&
-          response.data['data']['rankings'] != null) {
-        final rankings = response.data['data']['rankings'];
-        // Prefer viqrc rankings
-        final viqrcRankings = rankings['viqrc'] as List?;
-        if (viqrcRankings != null && viqrcRankings.isNotEmpty) {
-          return Map<String, dynamic>.from(viqrcRankings.first);
-        }
-        final v5rcRankings = rankings['v5rc'] as List?;
-        if (v5rcRankings != null && v5rcRankings.isNotEmpty) {
-          return Map<String, dynamic>.from(v5rcRankings.first);
-        }
+      if (response.data is Map && response.data['data'] is List) {
+        final rows = response.data['data'] as List;
+        if (rows.isEmpty) return null;
+        final row = Map<String, dynamic>.from(rows.first as Map);
+        final superscore = _parseNum(row['superscore'])?.toDouble();
+        final rank = row['rank'] is String
+            ? int.tryParse(row['rank'] as String)
+            : (row['rank'] as num?)?.toInt();
+        return {
+          'rank': rank,
+          'superscore': superscore,
+          'scaledSuperscore':
+              superscore == null ? null : (superscore * 17.0).toDouble(),
+        };
       }
     } catch (e) {
-      debugPrint('Error fetching team TrueSkill stats: $e');
+      debugPrint('Error fetching team SuperScore stats: $e');
     }
     return null;
   }

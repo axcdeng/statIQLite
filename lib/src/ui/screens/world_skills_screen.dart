@@ -40,7 +40,7 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
   // ── Data ──────────────────────────────────────────────────────────────────
   List<Map<String, dynamic>> _msSkills = [];
   List<Map<String, dynamic>> _esSkills = [];
-  List<Team> _trueSkills = [];
+  List<Team> _superScores = [];
 
   // ── UI state ──────────────────────────────────────────────────────────────
   bool _isLoading = true;
@@ -49,7 +49,7 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
 
   // ── Filters ───────────────────────────────────────────────────────────────
   String _gradeLevel = 'Middle School';
-  String _metric = 'Skills'; // 'Skills' | 'TrueSkill' | 'EPA'
+  String _metric = 'Skills'; // 'Skills' | 'SuperScore' | 'EPA'
   String? _selectedCountry;
 
   late TextEditingController _countryController;
@@ -148,15 +148,13 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
             }
           });
         }
-      } else if (_metric == 'TrueSkill') {
-        final results = await repo.getGlobalTrueSkillRankings(
-          country: _selectedCountry,
-          forceRefresh: forceRefresh,
-        );
+      } else if (_metric == 'SuperScore') {
+        final results =
+            await repo.getGlobalSuperscoreRankings(forceRefresh: forceRefresh);
 
         if (mounted) {
           setState(() {
-            _trueSkills = results;
+            _superScores = results;
             _isLoading = false;
             if (results.isNotEmpty) {
               _showNoDataBanner = false;
@@ -231,8 +229,8 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                     children: {
                       'Skills': _segLabel(
                           'Skills', _metric == 'Skills', context, primaryColor),
-                      'TrueSkill': _segLabel('TrueSkill',
-                          _metric == 'TrueSkill', context, primaryColor),
+                      'SuperScore': _segLabel('SuperScore',
+                          _metric == 'SuperScore', context, primaryColor),
                       'EPA': _segLabel(
                           'EPA', _metric == 'EPA', context, primaryColor),
                     },
@@ -275,11 +273,11 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
                   ),
                 ),
 
-              // ── Country Filter (TrueSkill only) ──────────────────────────
+              // ── Country Filter (SuperScore only) ─────────────────────────
               /*
               // NOTE FOR FUTURE AI: The country filter is intentionally disabled for now per user request.
               // To re-enable, uncomment this block and ensure _selectedCountry logic in _fetchData is sync'd.
-              if (_metric == 'TrueSkill')
+              if (_metric == 'SuperScore')
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0)
                       .copyWith(bottom: 12.0),
@@ -479,8 +477,8 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
           ),
         ));
       }
-    } else if (_metric == 'TrueSkill') {
-      final currentList = _trueSkills;
+    } else if (_metric == 'SuperScore') {
+      final currentList = _superScores;
       if (currentList.isEmpty) {
         slivers.add(const SliverFillRemaining(
           child: Center(child: Text('No data')),
@@ -490,7 +488,7 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
           itemExtent: 72.0,
           delegate: SliverChildBuilderDelegate(
             (context, index) =>
-                _buildTrueSkillTile(currentList[index], index + 1, context),
+                _buildSuperscoreTile(currentList[index], index + 1, context),
             childCount: currentList.length,
           ),
         ));
@@ -627,13 +625,13 @@ class _WorldSkillsScreenState extends ConsumerState<WorldSkillsScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // TrueSkill tile
+  // SuperScore tile
   // ---------------------------------------------------------------------------
 
-  Widget _buildTrueSkillTile(Team team, int rank, BuildContext context) {
+  Widget _buildSuperscoreTile(Team team, int rank, BuildContext context) {
     final number = team.number;
     final name = team.name;
-    final score = team.trueskill ?? 0.0;
+    final score = team.scaledSuperscore ?? 0.0;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return GestureDetector(

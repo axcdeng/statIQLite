@@ -84,7 +84,7 @@ final bottomNavIndexProvider =
     StateProvider<int>((ref) => 0); // Default to Favorites
 final teamSearchQueryProvider = StateProvider<String?>((ref) => null);
 
-// Resources Tab State (0: Manual, 1: Calculator, 2: Field, 3: Timer)
+// Resources Tab State (0: Timer, 1: Calculator, 2: Field, 3: Manual)
 final resourcesTabProvider = StateProvider<int>((ref) => 0);
 
 class ReturnToEventState {

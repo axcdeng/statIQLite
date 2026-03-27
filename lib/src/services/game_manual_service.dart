@@ -13,9 +13,96 @@ class GameManualService {
   static const String _kLastUpdateKey = 'rules_last_update_v2';
   static const String _kManualUrl =
       'https://www.vexrobotics.com/mix-and-match-manual';
+  static const String _kManualPdfUrl =
+      'https://link.vex.com/docs/25-26/viqrc-mixandmatch-manual';
   static final RegExp _kRuleIdPattern = RegExp(r'^<([A-Z]+)\d+>$');
+  static const Map<String, int> _kRulePdfPages = {
+    'SC1': 33,
+    'SC2': 33,
+    'SC3': 33,
+    'SC4': 35,
+    'SC5': 35,
+    'SC6': 35,
+    'SC7': 36,
+    'SC8': 36,
+    'S1': 41,
+    'S2': 41,
+    'S3': 41,
+    'G1': 42,
+    'G2': 43,
+    'G3': 44,
+    'G4': 44,
+    'G5': 46,
+    'GG1': 48,
+    'GG2': 49,
+    'GG3': 49,
+    'GG4': 49,
+    'GG5': 49,
+    'GG6': 50,
+    'GG7': 50,
+    'GG8': 50,
+    'GG9': 50,
+    'GG10': 51,
+    'GG11': 51,
+    'GG12': 52,
+    'GG13': 53,
+    'SG1': 54,
+    'SG2': 55,
+    'SG3': 55,
+    'SG4': 55,
+    'SG5': 55,
+    'SG6': 56,
+    'R1': 58,
+    'R2': 59,
+    'R3': 59,
+    'R4': 60,
+    'R5': 60,
+    'R6': 61,
+    'R7': 61,
+    'R8': 61,
+    'R9': 62,
+    'R10': 62,
+    'R11': 62,
+    'R12': 62,
+    'R13': 63,
+    'R14': 63,
+    'R15': 64,
+    'R16': 64,
+    'R17': 64,
+    'R18': 65,
+    'R19': 65,
+    'RSC1': 68,
+    'RSC2': 68,
+    'RSC3': 68,
+    'RSC4': 69,
+    'RSC5': 69,
+    'RSC6': 70,
+    'RSC7': 70,
+    'RSC8': 71,
+    'T1': 74,
+    'T2': 75,
+    'T3': 75,
+    'T4': 75,
+    'T5': 76,
+    'T6': 76,
+    'T7': 77,
+    'T8': 77,
+    'T9': 77,
+    'T10': 77,
+    'T11': 78,
+    'T12': 78,
+    'T13': 79,
+    'T14': 79,
+    'T15': 79,
+    'T16': 80,
+    'T17': 80,
+    'T18': 81,
+    'T19': 81,
+  };
 
   GameManualService(this._dio, this._cache);
+
+  String manualPdfUrlForPage(int page) => '$_kManualPdfUrl#page=$page';
 
   Future<List<GameRule>> getRules({bool forceRefresh = false}) async {
     final lastUpdateStr = _cache.get(_kLastUpdateKey);
@@ -99,6 +186,7 @@ class GameManualService {
         body: body,
         section: section,
         tags: type == 'definition' ? ['definition'] : const [],
+        page: _kRulePdfPages[id.replaceAll(RegExp(r'[<>]'), '')],
       );
     }).toList();
   }
@@ -163,6 +251,7 @@ class GameManualService {
         section: section,
         title: title,
         body: body,
+        page: rule.page ?? _kRulePdfPages[id.replaceAll(RegExp(r'[<>]'), '')],
       ));
     }
 
