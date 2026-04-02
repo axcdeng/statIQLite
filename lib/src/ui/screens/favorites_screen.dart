@@ -267,7 +267,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                                 letterSpacing: 0.5)),
                         CupertinoButton(
                           padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
                           onPressed: () {
                             ref
                                 .read(settingsProvider.notifier)

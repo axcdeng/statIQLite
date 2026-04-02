@@ -248,7 +248,6 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
               const SizedBox(width: 8),
               CupertinoButton(
                 padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
                 child: Icon(CupertinoIcons.clock, color: primaryColor),
                 onPressed: () => _showHistory(context),
               ),
@@ -422,8 +421,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
                   children: [
                     CupertinoButton(
                       padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      child: Icon(CupertinoIcons.link,
+                            child: Icon(CupertinoIcons.link,
                           color: primaryColor, size: 22),
                       onPressed: () async {
                         final url = Uri.parse(
@@ -436,8 +434,7 @@ class _TeamLookupScreenState extends ConsumerState<TeamLookupScreen> {
                     const SizedBox(width: 16),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      child: Icon(
+                            child: Icon(
                         isFavorite
                             ? CupertinoIcons.star_fill
                             : CupertinoIcons.star,

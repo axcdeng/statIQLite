@@ -219,7 +219,7 @@ class MatchDetailScreen extends ConsumerWidget {
           ),
         ),
         ...teamNums
-            .map((num) => _buildTeamCard(context, ref, num, color, rankings)),
+            .map((teamNum) => _buildTeamCard(context, ref, teamNum, color, rankings)),
       ],
     );
   }
@@ -289,7 +289,6 @@ class MatchDetailScreen extends ConsumerWidget {
                   ),
                   CupertinoButton(
                     padding: EdgeInsets.zero,
-                    minSize: 0,
                     child: Icon(CupertinoIcons.search,
                         color: primaryColor, size: 22),
                     onPressed: () {

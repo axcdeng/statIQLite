@@ -396,7 +396,6 @@ class _EventsListViewState extends ConsumerState<EventsListView> {
                     const SizedBox(width: 8),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
                       child: Icon(CupertinoIcons.clock, color: primaryColor),
                       onPressed: () => _showHistory(context),
                     ),
