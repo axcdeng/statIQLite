@@ -461,7 +461,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
   Widget _buildStatsPanel(_TeamEventStats stats) {
     final timeStr = stats.upcomingMatch?.scheduledTime != null
-        ? DateFormat('h:mm a').format(stats.upcomingMatch!.scheduledTime!)
+        ? DateFormat('h:mm a').format(stats.upcomingMatch!.scheduledTime!.toLocal())
         : null;
     final matchLabel = stats.upcomingMatch?.shortName;
 
